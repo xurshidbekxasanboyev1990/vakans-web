@@ -103,11 +103,6 @@ app.get('/', (req, res) => {
     }
   });
 });
-      categories: '/api/categories',
-      admin: '/api/admin'
-    }
-  });
-});
 
 // ============================================
 // ERROR HANDLING

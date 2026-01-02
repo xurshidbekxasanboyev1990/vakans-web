@@ -467,7 +467,7 @@ class ApiService {
       return { success: true };
     }
 
-    return await this.request('/users/profile', {
+    return await this.request('/users/account', {
       method: 'DELETE',
     });
   }

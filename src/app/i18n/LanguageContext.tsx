@@ -21,44 +21,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [backendTranslations, setBackendTranslations] = useState<Record<string, string> | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Fetch translations from backend (only if API_URL is configured)
+  // Use local translations only - no backend API needed
   useEffect(() => {
-    // Skip API call if no backend URL configured
-    if (!API_URL) {
-      setBackendTranslations(null);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
-
-    const fetchTranslations = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(`${API_URL}/i18n/${language}`, {
-          signal: controller.signal
-        });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data) {
-            setBackendTranslations(data.data);
-          }
-        }
-      } catch {
-        // Backend unavailable, silently use local translations
-        setBackendTranslations(null);
-      } finally {
-        clearTimeout(timeoutId);
-        setLoading(false);
-      }
-    };
-
-    fetchTranslations();
-
-    return () => {
-      controller.abort();
-      clearTimeout(timeoutId);
-    };
+    // Always use local translations
+    setBackendTranslations(null);
+    setLoading(false);
   }, [language]);
 
   useEffect(() => {

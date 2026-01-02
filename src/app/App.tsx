@@ -55,11 +55,14 @@ function ProtectedRoute({ children, requiredUserType }: { children: React.ReactN
   const { user, loading } = useAuth();
   const location = useLocation();
 
+  console.log('[ProtectedRoute] User:', user, 'Loading:', loading, 'RequiredType:', requiredUserType);
+
   if (loading) {
     return <LoadingSpinner />;
   }
 
   if (!user) {
+    console.log('[ProtectedRoute] No user, redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
@@ -76,6 +79,7 @@ function ProtectedRoute({ children, requiredUserType }: { children: React.ReactN
     return <Navigate to={user.userType === 'worker' ? '/worker' : '/employer'} replace />;
   }
 
+  console.log('[ProtectedRoute] Access granted, rendering children');
   return <>{children}</>;
 }
 
@@ -376,11 +380,16 @@ function LoginPage({ userType }: { userType: 'worker' | 'employer' }) {
   const location = useLocation();
 
   const handleLogin = async (phone: string, password: string) => {
+    console.log('[LoginPage] Starting login for phone:', phone);
     const { error } = await signIn(phone, password);
+    console.log('[LoginPage] Login result - error:', error);
     if (!error) {
-      const from = (location.state as { from?: Location })?.from?.pathname || 
-        `/dashboard/${userType}`;
+      const targetPath = `/dashboard/${userType}`;
+      console.log('[LoginPage] Navigating to:', targetPath);
+      const from = (location.state as { from?: Location })?.from?.pathname || targetPath;
       navigate(from, { replace: true });
+    } else {
+      console.error('[LoginPage] Login failed:', error);
     }
   };
 

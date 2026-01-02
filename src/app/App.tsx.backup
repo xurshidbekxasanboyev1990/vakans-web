@@ -1,0 +1,899 @@
+import { useState, useEffect } from 'react';import { useState, useEffect } from 'react';import { useState, useEffect } from 'react';
+
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
+
+import { LoginForm } from './components/LoginForm';import { AuthProvider, useAuth } from '../contexts/AuthContext';import { RegistrationForm, RegistrationData } from './components/RegistrationForm';
+
+import { SignupForm } from './components/SignupForm';
+
+import { EmployerDashboard } from './components/EmployerDashboard';import { LoginForm } from './components/LoginForm';import { EmployerDashboard } from './components/EmployerDashboard';
+
+import { WorkerDashboard } from './components/WorkerDashboard';
+
+import { JobData } from './components/JobPostForm';import { SignupForm } from './components/SignupForm';import { WorkerDashboard } from './components/WorkerDashboard';
+
+import { Button } from './components/ui/button';
+
+import { Briefcase, Users } from 'lucide-react';import { EmployerDashboard } from './components/EmployerDashboard';import { JobData } from './components/JobPostForm';
+
+import { Toaster } from './components/ui/sonner';
+
+import { toast } from 'sonner';import { WorkerDashboard } from './components/WorkerDashboard';import { Button } from './components/ui/button';
+
+import { supabase } from '../lib/supabase';
+
+import { projectId } from '../../utils/supabase/info';import { JobData } from './components/JobPostForm';import { Briefcase, Users } from 'lucide-react';
+
+
+
+type AppState = 'home' | 'login' | 'worker-signup' | 'employer-signup' | 'worker-dashboard' | 'employer-dashboard';import { Button } from './components/ui/button';import { Toaster } from './components/ui/sonner';
+
+
+
+const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-5b47a45d`;import { Briefcase, Users } from 'lucide-react';import { toast } from 'sonner';
+
+
+
+function AppContent() {import { Toaster } from './components/ui/sonner';import { projectId, publicAnonKey } from '../../utils/supabase/info';
+
+  const { user, profile, loading: authLoading, signOut } = useAuth();
+
+  const [appState, setAppState] = useState<AppState>('home');import { toast } from 'sonner';
+
+  const [jobs, setJobs] = useState<JobData[]>([]);
+
+  const [isLoading, setIsLoading] = useState(false);import { supabase } from '../lib/supabase';type AppState = 'home' | 'worker-registration' | 'employer-registration' | 'worker-dashboard' | 'employer-dashboard';
+
+
+
+  // Automatically navigate to dashboard when user logs in
+
+  useEffect(() => {
+
+    if (user && profile) {type AppState = 'home' | 'login' | 'worker-signup' | 'employer-signup' | 'worker-dashboard' | 'employer-dashboard';const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-5b47a45d`;
+
+      if (profile.userType === 'worker') {
+
+        setAppState('worker-dashboard');
+
+      } else {
+
+        setAppState('employer-dashboard');const API_URL = `https://${supabase.supabaseUrl.split('//')[1].split('.')[0]}.supabase.co/functions/v1/make-server-5b47a45d`;function App() {
+
+      }
+
+      fetchJobs();  const [appState, setAppState] = useState<AppState>('home');
+
+    } else if (!authLoading && !user) {
+
+      // Only go to home if not loading and no userfunction AppContent() {  const [currentUser, setCurrentUser] = useState<RegistrationData | null>(null);
+
+      if (appState !== 'home' && appState !== 'login' && appState !== 'worker-signup' && appState !== 'employer-signup') {
+
+        setAppState('home');  const { user, profile, loading: authLoading, signOut } = useAuth();  const [jobs, setJobs] = useState<JobData[]>([]);
+
+      }
+
+    }  const [appState, setAppState] = useState<AppState>('home');  const [isLoading, setIsLoading] = useState(false);
+
+  }, [user, profile, authLoading]);
+
+  const [jobs, setJobs] = useState<JobData[]>([]);  const [isInitializing, setIsInitializing] = useState(true);
+
+  // Fetch jobs from server
+
+  const fetchJobs = async () => {  const [isLoading, setIsLoading] = useState(false);
+
+    try {
+
+      const session = await supabase.auth.getSession();  // Load user from localStorage on app start
+
+      const response = await fetch(`${API_URL}/jobs`, {
+
+        headers: {  // Automatically navigate to dashboard when user logs in  useEffect(() => {
+
+          'Authorization': `Bearer ${session.data.session?.access_token}`,
+
+        },  useEffect(() => {    const initializeApp = async () => {
+
+      });
+
+      const data = await response.json();    if (user && profile) {      const savedUser = localStorage.getItem('currentUser');
+
+      if (data.success) {
+
+        setJobs(data.jobs);      if (profile.userType === 'worker') {      if (savedUser) {
+
+      } else {
+
+        console.error('Error fetching jobs:', data.error);        setAppState('worker-dashboard');        try {
+
+      }
+
+    } catch (error) {      } else {          const userData = JSON.parse(savedUser);
+
+      console.error('Error fetching jobs:', error);
+
+      toast.error('Ishlarni yuklashda xatolik');        setAppState('employer-dashboard');          setCurrentUser(userData);
+
+    }
+
+  };      }          
+
+
+
+  const handlePostJob = async (jobData: Omit<JobData, 'id' | 'employerName' | 'employerRegion' | 'createdAt'>) => {      fetchJobs();          // Set appropriate dashboard based on user type
+
+    if (!profile) return;
+
+    } else if (!authLoading && !user) {          if (userData.userType === 'worker') {
+
+    setIsLoading(true);
+
+    try {      // Only go to home if not loading and no user            setAppState('worker-dashboard');
+
+      const newJob = {
+
+        employerName: `${profile.firstName} ${profile.lastName}`,      if (appState !== 'home' && appState !== 'login' && appState !== 'worker-signup' && appState !== 'employer-signup') {          } else {
+
+        employerRegion: profile.region,
+
+        employerPhone: profile.phone,        setAppState('home');            setAppState('employer-dashboard');
+
+        ...jobData,
+
+      };      }          }
+
+
+
+      const session = await supabase.auth.getSession();    }          
+
+      const response = await fetch(`${API_URL}/jobs`, {
+
+        method: 'POST',  }, [user, profile, authLoading]);          // Fetch jobs when user is loaded from localStorage
+
+        headers: {
+
+          'Content-Type': 'application/json',          await fetchJobs();
+
+          'Authorization': `Bearer ${session.data.session?.access_token}`,
+
+        },  // Fetch jobs from server          
+
+        body: JSON.stringify(newJob),
+
+      });  const fetchJobs = async () => {          // Show welcome back message
+
+
+
+      const result = await response.json();    try {          toast.success(`С возвращением, ${userData.firstName}!`);
+
+      
+
+      if (result.success) {      const session = await supabase.auth.getSession();        } catch (error) {
+
+        await fetchJobs();
+
+        toast.success('Ish muvaffaqiyatli e\'lon qilindi!');      const response = await fetch(`${API_URL}/jobs`, {          console.error('Error loading user from localStorage:', error);
+
+      } else {
+
+        toast.error('Ish e\'lon qilishda xatolik');        headers: {          localStorage.removeItem('currentUser');
+
+      }
+
+    } catch (error) {          'Authorization': `Bearer ${session.data.session?.access_token}`,        }
+
+      console.error('Error posting job:', error);
+
+      toast.error('Serverga ulanishda xatolik');        },      }
+
+    } finally {
+
+      setIsLoading(false);      });      setIsInitializing(false);
+
+    }
+
+  };      const data = await response.json();    };
+
+
+
+  const handleLogout = async () => {      if (data.success) {
+
+    await signOut();
+
+    setAppState('home');        setJobs(data.jobs);    initializeApp();
+
+  };
+
+      } else {  }, []);
+
+  // Auto-refresh jobs every 30 seconds when user is logged in
+
+  useEffect(() => {        console.error('Error fetching jobs:', data.error);
+
+    if (user && (appState === 'worker-dashboard' || appState === 'employer-dashboard')) {
+
+      const interval = setInterval(() => {      }  // Fetch jobs from server
+
+        fetchJobs();
+
+      }, 30000); // 30 seconds    } catch (error) {  const fetchJobs = async () => {
+
+
+
+      return () => clearInterval(interval);      console.error('Error fetching jobs:', error);    try {
+
+    }
+
+  }, [user, appState]);      toast.error('Ishlarni yuklashda xatolik');      const response = await fetch(`${API_URL}/jobs`, {
+
+
+
+  // Show loading while auth is initializing    }        headers: {
+
+  if (authLoading) {
+
+    return (  };          'Authorization': `Bearer ${publicAnonKey}`,
+
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+
+        <div className="text-center">        },
+
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+
+          <p className="text-gray-600">Yuklanmoqda...</p>  const handlePostJob = async (jobData: Omit<JobData, 'id' | 'employerName' | 'employerRegion' | 'createdAt'>) => {      });
+
+        </div>
+
+      </div>    if (!profile) return;      const data = await response.json();
+
+    );
+
+  }      if (data.success) {
+
+
+
+  // Worker Dashboard    setIsLoading(true);        setJobs(data.jobs);
+
+  if (appState === 'worker-dashboard' && profile) {
+
+    return (    try {      } else {
+
+      <>
+
+        <WorkerDashboard      const newJob = {        console.error('Error fetching jobs:', data.error);
+
+          workerName={`${profile.firstName} ${profile.lastName}`}
+
+          workerRegion={profile.region}        employerName: `${profile.firstName} ${profile.lastName}`,        toast.error('Ошибка загрузки вакансий');
+
+          jobs={jobs}
+
+          onLogout={handleLogout}        employerRegion: profile.region,      }
+
+        />
+
+        <Toaster />        employerPhone: profile.phone,    } catch (error) {
+
+      </>
+
+    );        ...jobData,      console.error('Error fetching jobs:', error);
+
+  }
+
+      };      toast.error('Ошибка соединения с сервером');
+
+  // Employer Dashboard
+
+  if (appState === 'employer-dashboard' && profile) {    }
+
+    return (
+
+      <>      const session = await supabase.auth.getSession();  };
+
+        <EmployerDashboard
+
+          employerName={`${profile.firstName} ${profile.lastName}`}      const response = await fetch(`${API_URL}/jobs`, {
+
+          employerRegion={profile.region}
+
+          jobs={jobs}        method: 'POST',  const handleRegister = async (data: RegistrationData) => {
+
+          onPostJob={handlePostJob}
+
+          onLogout={handleLogout}        headers: {    setIsLoading(true);
+
+        />
+
+        <Toaster />          'Content-Type': 'application/json',    
+
+      </>
+
+    );          'Authorization': `Bearer ${session.data.session?.access_token}`,    console.log('Starting registration with data:', data);
+
+  }
+
+        },    
+
+  // Login Form
+
+  if (appState === 'login') {        body: JSON.stringify(newJob),    try {
+
+    return (
+
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">      });      // Save user to localStorage immediately
+
+        <div className="mb-8 text-center">
+
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Works</h1>      localStorage.setItem('currentUser', JSON.stringify(data));
+
+          <p className="text-gray-600">Ishchilar va ish beruvchilar platformasi</p>
+
+        </div>      const result = await response.json();      console.log('User saved to localStorage');
+
+        <LoginForm onSwitchToSignup={() => setAppState('home')} />
+
+        <div className="mt-4">            
+
+          <Button variant="ghost" onClick={() => setAppState('home')}>
+
+            ← Orqaga      if (result.success) {      // Set current user
+
+          </Button>
+
+        </div>        await fetchJobs();      setCurrentUser(data);
+
+        <Toaster />
+
+      </div>        toast.success('Ish muvaffaqiyatli e\'lon qilindi!');      console.log('Current user set');
+
+    );
+
+  }      } else {      
+
+
+
+  // Worker Signup Form        toast.error('Ish e\'lon qilishda xatolik');      // Register on server (non-blocking)
+
+  if (appState === 'worker-signup') {
+
+    return (      }      fetch(`${API_URL}/register`, {
+
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
+
+        <div className="mb-8 text-center">    } catch (error) {        method: 'POST',
+
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Works</h1>
+
+          <p className="text-gray-600">Ishchilar va ish beruvchilar platformasi</p>      console.error('Error posting job:', error);        headers: {
+
+        </div>
+
+        <SignupForm userType="worker" onSwitchToLogin={() => setAppState('login')} />      toast.error('Serverga ulanishda xatolik');          'Content-Type': 'application/json',
+
+        <div className="mt-4">
+
+          <Button variant="ghost" onClick={() => setAppState('home')}>    } finally {          'Authorization': `Bearer ${publicAnonKey}`,
+
+            ← Orqaga
+
+          </Button>      setIsLoading(false);        },
+
+        </div>
+
+        <Toaster />    }        body: JSON.stringify(data),
+
+      </div>
+
+    );  };      }).then(response => response.json())
+
+  }
+
+        .then(result => {
+
+  // Employer Signup Form
+
+  if (appState === 'employer-signup') {  const handleLogout = async () => {          console.log('Server registration result:', result);
+
+    return (
+
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">    await signOut();        })
+
+        <div className="mb-8 text-center">
+
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Works</h1>    setAppState('home');        .catch(error => {
+
+          <p className="text-gray-600">Ishchilar va ish beruvchilar platformasi</p>
+
+        </div>  };          console.error('Server registration error:', error);
+
+        <SignupForm userType="employer" onSwitchToLogin={() => setAppState('login')} />
+
+        <div className="mt-4">        });
+
+          <Button variant="ghost" onClick={() => setAppState('home')}>
+
+            ← Orqaga  // Auto-refresh jobs every 30 seconds when user is logged in      
+
+          </Button>
+
+        </div>  useEffect(() => {      // Fetch jobs
+
+        <Toaster />
+
+      </div>    if (user && (appState === 'worker-dashboard' || appState === 'employer-dashboard')) {      await fetchJobs();
+
+    );
+
+  }      const interval = setInterval(() => {      console.log('Jobs fetched');
+
+
+
+  // Home Page        fetchJobs();      
+
+  return (
+
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">      }, 30000); // 30 seconds      // Navigate to appropriate dashboard
+
+      <div className="text-center mb-12">
+
+        <h1 className="text-5xl font-bold text-gray-800 mb-4">Works</h1>      if (data.userType === 'worker') {
+
+        <p className="text-xl text-gray-600 mb-2">Ishchilar va ish beruvchilar platformasi</p>
+
+        <p className="text-gray-500">Tezkor ish topish va ishchi topish uchun</p>      return () => clearInterval(interval);        setAppState('worker-dashboard');
+
+      </div>
+
+    }        toast.success('Вы успешно зарегистрированы как работник!');
+
+      <div className="grid md:grid-cols-2 gap-6 w-full max-w-4xl">
+
+        {/* Worker Card */}  }, [user, appState]);      } else {
+
+        <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-shadow">
+
+          <div className="flex justify-center mb-6">        setAppState('employer-dashboard');
+
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center">
+
+              <Users className="w-10 h-10 text-blue-600" />  // Show loading while auth is initializing        toast.success('Вы успешно зарегистрированы как работодатель!');
+
+            </div>
+
+          </div>  if (authLoading) {      }
+
+          <h2 className="text-2xl font-bold text-center mb-3">Ishchi</h2>
+
+          <p className="text-gray-600 text-center mb-6">    return (      
+
+            Ish topish va o'z hududingizdagi vakansiyalarni ko'rish
+
+          </p>      <div className="min-h-screen flex items-center justify-center bg-gray-50">      console.log('Registration completed, navigating to dashboard');
+
+          <div className="space-y-3">
+
+            <Button        <div className="text-center">    } catch (error) {
+
+              onClick={() => setAppState('worker-signup')}
+
+              className="w-full h-14 text-lg"          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>      console.error('Error during registration:', error);
+
+            >
+
+              Ro'yxatdan o'tish          <p className="text-gray-600">Yuklanmoqda...</p>      toast.error('Ошибка регистрации. Попробуйте снова.');
+
+            </Button>
+
+            <Button        </div>      localStorage.removeItem('currentUser');
+
+              onClick={() => setAppState('login')}
+
+              variant="outline"      </div>    } finally {
+
+              className="w-full h-14 text-lg"
+
+            >    );      setIsLoading(false);
+
+              Kirish
+
+            </Button>  }    }
+
+          </div>
+
+        </div>  };
+
+
+
+        {/* Employer Card */}  // Worker Dashboard
+
+        <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-shadow">
+
+          <div className="flex justify-center mb-6">  if (appState === 'worker-dashboard' && profile) {  const handlePostJob = async (jobData: Omit<JobData, 'id' | 'employerName' | 'employerRegion' | 'createdAt'>) => {
+
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+
+              <Briefcase className="w-10 h-10 text-green-600" />    return (    if (!currentUser) return;
+
+            </div>
+
+          </div>      <>
+
+          <h2 className="text-2xl font-bold text-center mb-3">Ish beruvchi</h2>
+
+          <p className="text-gray-600 text-center mb-6">        <WorkerDashboard    setIsLoading(true);
+
+            Ish e'lon qilish va ishchilar topish
+
+          </p>          workerName={`${profile.firstName} ${profile.lastName}`}    try {
+
+          <div className="space-y-3">
+
+            <Button          workerRegion={profile.region}      const newJob = {
+
+              onClick={() => setAppState('employer-signup')}
+
+              className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"          jobs={jobs}        employerName: `${currentUser.firstName} ${currentUser.lastName}`,
+
+            >
+
+              Ro'yxatdan o'tish          onLogout={handleLogout}        employerRegion: currentUser.region,
+
+            </Button>
+
+            <Button        />        ...jobData,
+
+              onClick={() => setAppState('login')}
+
+              variant="outline"        <Toaster />      };
+
+              className="w-full h-14 text-lg"
+
+            >      </>
+
+              Kirish
+
+            </Button>    );      const response = await fetch(`${API_URL}/jobs`, {
+
+          </div>
+
+        </div>  }        method: 'POST',
+
+      </div>
+
+        headers: {
+
+      <Toaster />
+
+    </div>  // Employer Dashboard          'Content-Type': 'application/json',
+
+  );
+
+}  if (appState === 'employer-dashboard' && profile) {          'Authorization': `Bearer ${publicAnonKey}`,
+
+
+
+function App() {    return (        },
+
+  return (
+
+    <AuthProvider>      <>        body: JSON.stringify(newJob),
+
+      <AppContent />
+
+    </AuthProvider>        <EmployerDashboard      });
+
+  );
+
+}          employerName={`${profile.firstName} ${profile.lastName}`}
+
+
+
+export default App;          employerRegion={profile.region}      const result = await response.json();
+
+
+          jobs={jobs}      
+
+          onPostJob={handlePostJob}      if (result.success) {
+
+          onLogout={handleLogout}        // Refresh jobs list
+
+        />        await fetchJobs();
+
+        <Toaster />        toast.success('Вакансия успешно опубликована!');
+
+      </>      } else {
+
+    );        toast.error('Ошибка публикации вакансии');
+
+  }      }
+
+    } catch (error) {
+
+  // Login Form      console.error('Error posting job:', error);
+
+  if (appState === 'login') {      toast.error('Ошибка соединения с сервером');
+
+    return (    } finally {
+
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">      setIsLoading(false);
+
+        <div className="mb-8 text-center">    }
+
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Works</h1>  };
+
+          <p className="text-gray-600">Ishchilar va ish beruvchilar platformasi</p>
+
+        </div>  const handleLogout = () => {
+
+        <LoginForm onSwitchToSignup={() => setAppState('home')} />    setCurrentUser(null);
+
+        <div className="mt-4">    setAppState('home');
+
+          <Button variant="ghost" onClick={() => setAppState('home')}>    localStorage.removeItem('currentUser');
+
+            ← Orqaga    toast.info('Вы вышли из системы');
+
+          </Button>  };
+
+        </div>
+
+        <Toaster />  // Auto-refresh jobs every 30 seconds when user is logged in
+
+      </div>  useEffect(() => {
+
+    );    if (currentUser && (appState === 'worker-dashboard' || appState === 'employer-dashboard')) {
+
+  }      const interval = setInterval(() => {
+
+        fetchJobs();
+
+  // Worker Signup Form      }, 30000); // 30 seconds
+
+  if (appState === 'worker-signup') {
+
+    return (      return () => clearInterval(interval);
+
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">    }
+
+        <div className="mb-8 text-center">  }, [currentUser, appState]);
+
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Works</h1>
+
+          <p className="text-gray-600">Ishchilar va ish beruvchilar platformasi</p>  if (appState === 'worker-dashboard' && currentUser) {
+
+        </div>    return (
+
+        <SignupForm userType="worker" onSwitchToLogin={() => setAppState('login')} />      <>
+
+        <div className="mt-4">        <WorkerDashboard
+
+          <Button variant="ghost" onClick={() => setAppState('home')}>          workerName={`${currentUser.firstName} ${currentUser.lastName}`}
+
+            ← Orqaga          workerRegion={currentUser.region}
+
+          </Button>          jobs={jobs}
+
+        </div>          onLogout={handleLogout}
+
+        <Toaster />        />
+
+      </div>        <Toaster />
+
+    );      </>
+
+  }    );
+
+  }
+
+  // Employer Signup Form
+
+  if (appState === 'employer-signup') {  if (appState === 'employer-dashboard' && currentUser) {
+
+    return (    return (
+
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">      <>
+
+        <div className="mb-8 text-center">        <EmployerDashboard
+
+          <h1 className="text-4xl font-bold text-gray-800 mb-2">Works</h1>          employerName={`${currentUser.firstName} ${currentUser.lastName}`}
+
+          <p className="text-gray-600">Ishchilar va ish beruvchilar platformasi</p>          employerRegion={currentUser.region}
+
+        </div>          jobs={jobs}
+
+        <SignupForm userType="employer" onSwitchToLogin={() => setAppState('login')} />          onPostJob={handlePostJob}
+
+        <div className="mt-4">          onLogout={handleLogout}
+
+          <Button variant="ghost" onClick={() => setAppState('home')}>        />
+
+            ← Orqaga        <Toaster />
+
+          </Button>      </>
+
+        </div>    );
+
+        <Toaster />  }
+
+      </div>
+
+    );  if (appState === 'worker-registration') {
+
+  }    return (
+
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col p-4">
+
+  // Home Page        <div className="py-4">
+
+  return (          <Button
+
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">            variant="ghost"
+
+      <div className="text-center mb-12">            onClick={() => setAppState('home')}
+
+        <h1 className="text-5xl font-bold text-gray-800 mb-4">Works</h1>            disabled={isLoading}
+
+        <p className="text-xl text-gray-600 mb-2">Ishchilar va ish beruvchilar platformasi</p>            className="h-12 px-6 text-base"
+
+        <p className="text-gray-500">Tezkor ish topish va ishchi topish uchun</p>          >
+
+      </div>            ← Назад
+
+          </Button>
+
+      <div className="grid md:grid-cols-2 gap-6 w-full max-w-4xl">        </div>
+
+        {/* Worker Card */}        <div className="flex-1 flex items-center justify-center">
+
+        <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-shadow">          <RegistrationForm userType="worker" onRegister={handleRegister} isLoading={isLoading} />
+
+          <div className="flex justify-center mb-6">        </div>
+
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center">        <Toaster />
+
+              <Users className="w-10 h-10 text-blue-600" />      </div>
+
+            </div>    );
+
+          </div>  }
+
+          <h2 className="text-2xl font-bold text-center mb-3">Ishchi</h2>
+
+          <p className="text-gray-600 text-center mb-6">  if (appState === 'employer-registration') {
+
+            Ish topish va o'z hududingizdagi vakansiyalarni ko'rish    return (
+
+          </p>      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex flex-col p-4">
+
+          <div className="space-y-3">        <div className="py-4">
+
+            <Button          <Button
+
+              onClick={() => setAppState('worker-signup')}            variant="ghost"
+
+              className="w-full h-14 text-lg"            onClick={() => setAppState('home')}
+
+            >            disabled={isLoading}
+
+              Ro'yxatdan o'tish            className="h-12 px-6 text-base"
+
+            </Button>          >
+
+            <Button            ← Назад
+
+              onClick={() => setAppState('login')}          </Button>
+
+              variant="outline"        </div>
+
+              className="w-full h-14 text-lg"        <div className="flex-1 flex items-center justify-center">
+
+            >          <RegistrationForm userType="employer" onRegister={handleRegister} isLoading={isLoading} />
+
+              Kirish        </div>
+
+            </Button>        <Toaster />
+
+          </div>      </div>
+
+        </div>    );
+
+  }
+
+        {/* Employer Card */}
+
+        <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-shadow">  return (
+
+          <div className="flex justify-center mb-6">    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex items-center justify-center p-4">
+
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">      <div className="text-center max-w-lg w-full">
+
+              <Briefcase className="w-10 h-10 text-green-600" />        <div className="mb-8">
+
+            </div>          <h1 className="text-3xl mb-3">
+
+          </div>            Платформа поиска работы
+
+          <h2 className="text-2xl font-bold text-center mb-3">Ish beruvchi</h2>          </h1>
+
+          <p className="text-gray-600 text-center mb-6">          <p className="text-gray-600 text-base px-4">
+
+            Ish e'lon qilish va ishchilar topish            Найдите работу или найдите работников в вашем регионе
+
+          </p>          </p>
+
+          <div className="space-y-3">        </div>
+
+            <Button
+
+              onClick={() => setAppState('employer-signup')}        <div className="space-y-4">
+
+              className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"          <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow active:scale-[0.98] transition-transform">
+
+            >            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+
+              Ro'yxatdan o'tish              <Users className="w-10 h-10 text-blue-600" />
+
+            </Button>            </div>
+
+            <Button            <h2 className="text-xl mb-2">Я ищу работу</h2>
+
+              onClick={() => setAppState('login')}            <p className="text-gray-600 mb-6 text-base">
+
+              variant="outline"              Просматривайте доступные вакансии от работодателей в вашем регионе
+
+              className="w-full h-14 text-lg"            </p>
+
+            >            <Button
+
+              Kirish              onClick={() => setAppState('worker-registration')}
+
+            </Button>              className="w-full h-14 text-lg"
+
+          </div>            >
+
+        </div>              Зарегистрироваться как работник
+
+      </div>            </Button>
+
+          </div>
+
+      <Toaster />
+
+    </div>          <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow active:scale-[0.98] transition-transform">
+
+  );            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+
+}              <Briefcase className="w-10 h-10 text-green-600" />
+
+            </div>
+
+function App() {            <h2 className="text-xl mb-2">Я предлагаю работу</h2>
+
+  return (            <p className="text-gray-600 mb-6 text-base">
+
+    <AuthProvider>              Размещайте вакансии и находите надежных работников для ваших задач
+
+      <AppContent />            </p>
+
+    </AuthProvider>            <Button
+
+  );              onClick={() => setAppState('employer-registration')}
+
+}              className="w-full h-14 text-lg"
+
+            >
+
+export default App;              Зарегистрироваться как работодатель
+
+            </Button>
+          </div>
+        </div>
+      </div>
+      <Toaster />
+    </div>
+  );
+}
+
+export default App;

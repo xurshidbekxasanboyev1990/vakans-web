@@ -1,0 +1,42 @@
+{
+  "name": "Vakans.uz - Ish qidirish platformasi",
+  "short_name": "Vakans.uz",
+  "description": "O'zbekistondagi eng yaxshi ish qidirish va xodim topish platformasi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "uz",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Ishlarni ko'rish",
+      "short_name": "Ishlar",
+      "description": "Barcha mavjud ishlarni ko'ring",
+      "url": "/?view=jobs"
+    },
+    {
+      "name": "Ish e'lon qilish",
+      "short_name": "E'lon",
+      "description": "Yangi ish e'lon qiling",
+      "url": "/?action=post-job"
+    }
+  ],
+  "prefer_related_applications": false
+}

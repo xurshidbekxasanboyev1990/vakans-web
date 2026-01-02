@@ -382,21 +382,24 @@ function LoginPage({ userType }: { userType: 'worker' | 'employer' }) {
   const handleLogin = async (phone: string, password: string) => {
     const { error } = await signIn(phone, password);
     if (!error) {
-      // Check localStorage for user to get userType
-      const cachedUser = localStorage.getItem('currentUser');
-      if (cachedUser) {
-        try {
-          const user = JSON.parse(cachedUser);
-          const targetPath = user.userType === 'admin' ? '/admin' : `/${user.userType}`;
-          navigate(targetPath, { replace: true });
-          return;
-        } catch (e) {
-          console.error('Failed to parse cached user:', e);
+      // Wait a tick for state to update
+      setTimeout(() => {
+        // Check localStorage for user to get userType
+        const cachedUser = localStorage.getItem('currentUser');
+        if (cachedUser) {
+          try {
+            const user = JSON.parse(cachedUser);
+            const targetPath = user.userType === 'admin' ? '/admin' : `/${user.userType}`;
+            navigate(targetPath, { replace: true });
+            return;
+          } catch (e) {
+            console.error('Failed to parse cached user:', e);
+          }
         }
-      }
-      // Fallback to userType prop
-      const targetPath = `/${userType}`;
-      navigate(targetPath, { replace: true });
+        // Fallback to userType prop
+        const targetPath = `/${userType}`;
+        navigate(targetPath, { replace: true });
+      }, 100);
     }
   };
 

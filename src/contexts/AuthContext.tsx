@@ -43,22 +43,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cachedUser) {
         try {
           const parsedUser = JSON.parse(cachedUser);
-          setUser(parsedUser);
-          setLoading(false);
-          
-          // If we have a cached user, optionally validate token in background
-          // but don't clear user if it fails (offline support)
-          if (apiService.isAuthenticated()) {
-            apiService.getProfile().then(response => {
-              if (response.success && response.data?.profile) {
-                setUser(response.data.profile);
-                localStorage.setItem('currentUser', JSON.stringify(response.data.profile));
-              }
-            }).catch(() => {
-              // Silently fail - keep using cached user
-            });
+          // Validate user object has required fields
+          if (parsedUser && parsedUser.id && parsedUser.userType && 
+              (parsedUser.firstName || parsedUser.first_name)) {
+            // Normalize field names (convert snake_case to camelCase if needed)
+            const normalizedUser = {
+              id: parsedUser.id,
+              firstName: parsedUser.firstName || parsedUser.first_name,
+              lastName: parsedUser.lastName || parsedUser.last_name,
+              userType: parsedUser.userType || parsedUser.user_type,
+              phone: parsedUser.phone,
+              email: parsedUser.email,
+              region: parsedUser.region,
+              isAdmin: parsedUser.isAdmin || parsedUser.is_admin
+            };
+            setUser(normalizedUser);
+            localStorage.setItem('currentUser', JSON.stringify(normalizedUser));
+            setLoading(false);
+            
+            // If we have a cached user, optionally validate token in background
+            // but don't clear user if it fails (offline support)
+            if (apiService.isAuthenticated()) {
+              apiService.getProfile().then(response => {
+                if (response.success && response.data?.profile) {
+                  setUser(response.data.profile);
+                  localStorage.setItem('currentUser', JSON.stringify(response.data.profile));
+                }
+              }).catch(() => {
+                // Silently fail - keep using cached user
+              });
+            }
+            return;
+          } else {
+            // Invalid user format, clear it
+            localStorage.removeItem('currentUser');
           }
-          return;
         } catch (e) {
           localStorage.removeItem('currentUser');
         }

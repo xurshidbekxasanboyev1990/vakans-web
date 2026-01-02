@@ -379,7 +379,7 @@ function LoginPage({ userType }: { userType: 'worker' | 'employer' }) {
     const { error } = await signIn(phone, password);
     if (!error) {
       const from = (location.state as { from?: Location })?.from?.pathname || 
-        (userType === 'worker' ? '/worker' : '/employer');
+        `/dashboard/${userType}`;
       navigate(from, { replace: true });
     }
   };

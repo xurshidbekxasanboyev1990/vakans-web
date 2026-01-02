@@ -165,25 +165,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
-      console.log('[AuthContext] signIn called with:', email);
 
       // Validate input on client side
       const validationResult = loginSchema.safeParse({ email, password });
 
       if (!validationResult.success) {
         const error = validationResult.error.issues[0].message;
-        console.error('[AuthContext] Validation failed:', error);
         toast.error(error);
+        setLoading(false);
         return { error: new Error(error) };
       }
 
-      console.log('[AuthContext] Calling apiService.login...');
       const response = await apiService.login(email, password);
-      console.log('[AuthContext] API response:', response);
 
       if (!response.success) {
-        console.error('[AuthContext] Login failed:', response.error);
         toast.error(response.error || 'Email yoki parol noto\'g\'ri');
+        setLoading(false);
         return { error: new Error(response.error || 'Login failed') };
       }
 
@@ -196,17 +193,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           sessionStorage.setItem('deviceId', response.data.deviceId);
         }
         toast.success('Xush kelibsiz!');
+        setLoading(false);
         return { error: null, user: userData };
       } else {
+        setLoading(false);
         return { error: new Error('No user data in response') };
       }
     } catch (error) {
-      console.error('Signin error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Xatolik yuz berdi';
       toast.error(errorMessage);
-      return { error: error as Error };
-    } finally {
       setLoading(false);
+      return { error: error as Error };
     }
   };
 

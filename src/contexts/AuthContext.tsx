@@ -38,18 +38,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Fetch user profile on mount if token exists
   useEffect(() => {
     const initAuth = async () => {
+      // First check localStorage for cached user
+      const cachedUser = localStorage.getItem('currentUser');
+      if (cachedUser) {
+        try {
+          const parsedUser = JSON.parse(cachedUser);
+          console.log('[AuthContext] Loaded user from cache:', parsedUser);
+          setUser(parsedUser);
+        } catch (e) {
+          console.error('[AuthContext] Failed to parse cached user:', e);
+          localStorage.removeItem('currentUser');
+        }
+      }
+
       if (apiService.isAuthenticated()) {
         try {
+          console.log('[AuthContext] Fetching profile from API...');
           const response = await apiService.getProfile();
+          console.log('[AuthContext] Profile response:', response);
           if (response.success && response.data?.profile) {
             setUser(response.data.profile);
+            localStorage.setItem('currentUser', JSON.stringify(response.data.profile));
           } else {
             // Token invalid, clear it
+            console.log('[AuthContext] Profile fetch failed, clearing tokens');
             apiService.clearTokens();
+            localStorage.removeItem('currentUser');
           }
         } catch (error) {
           console.error('Auth initialization error:', error);
           apiService.clearTokens();
+          localStorage.removeItem('currentUser');
         }
       }
       setLoading(false);
@@ -142,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (response.data?.user) {
         console.log('[AuthContext] Setting user:', response.data.user);
         setUser(response.data.user);
+        localStorage.setItem('currentUser', JSON.stringify(response.data.user));
         // Store deviceId for multi-device support
         if (response.data.deviceId) {
           sessionStorage.setItem('deviceId', response.data.deviceId);

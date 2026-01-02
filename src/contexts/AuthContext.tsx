@@ -117,30 +117,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       setLoading(true);
+      console.log('[AuthContext] signIn called with:', email);
 
       // Validate input on client side
       const validationResult = loginSchema.safeParse({ email, password });
 
       if (!validationResult.success) {
         const error = validationResult.error.issues[0].message;
+        console.error('[AuthContext] Validation failed:', error);
         toast.error(error);
         return { error: new Error(error) };
       }
 
+      console.log('[AuthContext] Calling apiService.login...');
       const response = await apiService.login(email, password);
+      console.log('[AuthContext] API response:', response);
 
       if (!response.success) {
+        console.error('[AuthContext] Login failed:', response.error);
         toast.error(response.error || 'Email yoki parol noto\'g\'ri');
         return { error: new Error(response.error || 'Login failed') };
       }
 
       if (response.data?.user) {
+        console.log('[AuthContext] Setting user:', response.data.user);
         setUser(response.data.user);
         // Store deviceId for multi-device support
         if (response.data.deviceId) {
           sessionStorage.setItem('deviceId', response.data.deviceId);
         }
         toast.success('Xush kelibsiz!');
+      } else {
+        console.error('[AuthContext] No user in response:', response);
       }
 
       return { error: null };

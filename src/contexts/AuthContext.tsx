@@ -199,12 +199,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const deviceId = sessionStorage.getItem('deviceId');
       await apiService.logout(deviceId || undefined);
       setUser(null);
+      localStorage.removeItem('currentUser');
       // Remove deviceId from storage
       sessionStorage.removeItem('deviceId');
       toast.info('Tizimdan chiqdingiz');
     } catch (error) {
       console.error('Signout error:', error);
       toast.error('Xatolik yuz berdi');
+      // Clear user anyway
+      setUser(null);
+      localStorage.removeItem('currentUser');
     } finally {
       setLoading(false);
     }

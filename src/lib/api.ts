@@ -233,9 +233,11 @@ class ApiService {
       };
     } catch (error) {
       console.error('API request error:', error);
+      console.error('Request URL:', url);
+      console.error('Request options:', options);
       return {
         success: false,
-        error: 'Tarmoq xatosi. Iltimos, internetga ulanganingizni tekshiring.',
+        error: `Tarmoq xatosi: ${error instanceof Error ? error.message : 'Noma\'lum xato'}. URL: ${url}`,
       };
     }
   }

@@ -43,30 +43,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (cachedUser) {
         try {
           const parsedUser = JSON.parse(cachedUser);
-          console.log('[AuthContext] Loaded user from cache:', parsedUser);
           setUser(parsedUser);
+          setLoading(false);
+          
+          // If we have a cached user, optionally validate token in background
+          // but don't clear user if it fails (offline support)
+          if (apiService.isAuthenticated()) {
+            apiService.getProfile().then(response => {
+              if (response.success && response.data?.profile) {
+                setUser(response.data.profile);
+                localStorage.setItem('currentUser', JSON.stringify(response.data.profile));
+              }
+            }).catch(() => {
+              // Silently fail - keep using cached user
+            });
+          }
+          return;
         } catch (e) {
-          console.error('[AuthContext] Failed to parse cached user:', e);
           localStorage.removeItem('currentUser');
         }
       }
 
+      // No cached user, try to fetch from API
       if (apiService.isAuthenticated()) {
         try {
-          console.log('[AuthContext] Fetching profile from API...');
           const response = await apiService.getProfile();
-          console.log('[AuthContext] Profile response:', response);
           if (response.success && response.data?.profile) {
             setUser(response.data.profile);
             localStorage.setItem('currentUser', JSON.stringify(response.data.profile));
           } else {
             // Token invalid, clear it
-            console.log('[AuthContext] Profile fetch failed, clearing tokens');
             apiService.clearTokens();
             localStorage.removeItem('currentUser');
           }
         } catch (error) {
-          console.error('Auth initialization error:', error);
           apiService.clearTokens();
           localStorage.removeItem('currentUser');
         }

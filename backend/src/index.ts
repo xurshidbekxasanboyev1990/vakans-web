@@ -80,13 +80,13 @@ app.get(['/health', '/api/health'], (req, res) => {
   });
 });
 
-// API routes (without /api prefix - Nginx adds it)
-app.use('/auth', authRoutes);
-app.use('/users', usersRoutes);
-app.use('/jobs', jobsRoutes);
-app.use('/applications', applicationsRoutes);
-app.use('/categories', categoriesRoutes);
-app.use('/admin', adminRoutes);
+// API routes (Nginx sends /api/auth -> we handle /api/auth directly)
+app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/jobs', jobsRoutes);
+app.use('/api/applications', applicationsRoutes);
+app.use('/api/categories', categoriesRoutes);
+app.use('/api/admin', adminRoutes);
 
 // API info
 app.get('/', (req, res) => {

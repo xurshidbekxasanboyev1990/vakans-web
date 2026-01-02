@@ -55,15 +55,13 @@ function ProtectedRoute({ children, requiredUserType }: { children: React.ReactN
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  console.log('[ProtectedRoute] User:', user, 'Loading:', loading, 'RequiredType:', requiredUserType);
-
   if (loading) {
     return <LoadingSpinner />;
   }
 
   if (!user) {
-    console.log('[ProtectedRoute] No user, redirecting to login');
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // Redirect to select-role instead of /login
+    return <Navigate to="/select-role" state={{ from: location }} replace />;
   }
 
   // Admin check
@@ -79,7 +77,6 @@ function ProtectedRoute({ children, requiredUserType }: { children: React.ReactN
     return <Navigate to={user.userType === 'worker' ? '/worker' : '/employer'} replace />;
   }
 
-  console.log('[ProtectedRoute] Access granted, rendering children');
   return <>{children}</>;
 }
 

@@ -37,11 +37,11 @@ app.use(helmet({
 }));
 
 // CORS
-const allowedOrigins = process.env.CORS_ORIGIN 
-  ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'];
+const corsOriginRaw = process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:5174,http://localhost:3000';
+const allowedOrigins = corsOriginRaw.split(',').map(o => o.trim());
 
-console.log('🌐 CORS allowed origins:', allowedOrigins);
+console.log('🌐 CORS_ORIGIN env:', process.env.CORS_ORIGIN);
+console.log('🌐 CORS allowed origins:', JSON.stringify(allowedOrigins));
 
 app.use(cors({
   origin: allowedOrigins,
@@ -80,16 +80,16 @@ app.get(['/health', '/api/health'], (req, res) => {
   });
 });
 
-// API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/jobs', jobsRoutes);
-app.use('/api/applications', applicationsRoutes);
-app.use('/api/categories', categoriesRoutes);
-app.use('/api/admin', adminRoutes);
+// API routes (without /api prefix - Nginx adds it)
+app.use('/auth', authRoutes);
+app.use('/users', usersRoutes);
+app.use('/jobs', jobsRoutes);
+app.use('/applications', applicationsRoutes);
+app.use('/categories', categoriesRoutes);
+app.use('/admin', adminRoutes);
 
 // API info
-app.get('/api', (req, res) => {
+app.get('/', (req, res) => {
   res.json({
     name: 'Vakans.uz API',
     version: '1.0.0',
@@ -98,6 +98,11 @@ app.get('/api', (req, res) => {
       users: '/api/users',
       jobs: '/api/jobs',
       applications: '/api/applications',
+      categories: '/api/categories',
+      admin: '/api/admin'
+    }
+  });
+});
       categories: '/api/categories',
       admin: '/api/admin'
     }

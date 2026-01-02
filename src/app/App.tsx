@@ -1301,12 +1301,23 @@ function AdminDashboardPage() {
   );
 }
 
+function LoginRedirect() {
+  const { user } = useAuth();
+  
+  if (user) {
+    const targetPath = user.userType === 'admin' ? '/admin' : `/${user.userType}`;
+    return <Navigate to={targetPath} replace />;
+  }
+  
+  return <Navigate to="/select-role" replace />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/select-role" element={<RoleSelectionPage />} />
-      <Route path="/login" element={<Navigate to="/select-role" replace />} />
+      <Route path="/login" element={<LoginRedirect />} />
       <Route path="/login/worker" element={<LoginPage userType="worker" />} />
       <Route path="/login/employer" element={<LoginPage userType="employer" />} />
       <Route path="/login/admin" element={<AdminLoginPage />} />

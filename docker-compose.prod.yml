@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: vakans_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: works_user
+      POSTGRES_PASSWORD: SecurePass2024_Production!
+      POSTGRES_DB: works_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "127.0.0.1:5432:5432"
+    networks:
+      - vakans_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U works_user -d works_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: vakans_redis
+    restart: always
+    command: redis-server --requirepass RedisSecurePass2024! --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    networks:
+      - vakans_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "RedisSecurePass2024!", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vakans_backend
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://works_user:SecurePass2024_Production!@postgres:5432/works_db
+      REDIS_URL: redis://:RedisSecurePass2024!@redis:6379
+      JWT_SECRET: production_jwt_secret_very_long_and_secure_minimum_32_characters_here
+      JWT_REFRESH_SECRET: production_refresh_secret_very_long_and_secure_minimum_32_characters
+      CORS_ORIGIN: http://77.237.239.235,http://77.237.239.235:80,http://77.237.239.235:3000
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - vakans_network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  vakans_network:
+    driver: bridge

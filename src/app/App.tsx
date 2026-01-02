@@ -380,16 +380,23 @@ function LoginPage({ userType }: { userType: 'worker' | 'employer' }) {
   const location = useLocation();
 
   const handleLogin = async (phone: string, password: string) => {
-    console.log('[LoginPage] Starting login for phone:', phone);
     const { error } = await signIn(phone, password);
-    console.log('[LoginPage] Login result - error:', error);
     if (!error) {
-      const targetPath = `/dashboard/${userType}`;
-      console.log('[LoginPage] Navigating to:', targetPath);
-      const from = (location.state as { from?: Location })?.from?.pathname || targetPath;
-      navigate(from, { replace: true });
-    } else {
-      console.error('[LoginPage] Login failed:', error);
+      // Check localStorage for user to get userType
+      const cachedUser = localStorage.getItem('currentUser');
+      if (cachedUser) {
+        try {
+          const user = JSON.parse(cachedUser);
+          const targetPath = user.userType === 'admin' ? '/admin' : `/${user.userType}`;
+          navigate(targetPath, { replace: true });
+          return;
+        } catch (e) {
+          console.error('Failed to parse cached user:', e);
+        }
+      }
+      // Fallback to userType prop
+      const targetPath = `/${userType}`;
+      navigate(targetPath, { replace: true });
     }
   };
 

@@ -16,7 +16,7 @@ export const registerSchema = z.object({
 });
 
 export const loginSchema = z.object({
-  phone: phoneSchema,
+  phone: z.string().min(1, 'Telefon raqam yoki email kiritilmagan'), // Can be phone or email
   password: z.string().min(1, 'Parol kiritilmagan')
 });
 

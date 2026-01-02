@@ -97,12 +97,12 @@ router.post('/login', authRateLimiter, async (req: AuthRequest, res: Response) =
 
     const { phone, password } = validation.data;
 
-    // Find user
+    // Find user by phone OR email
     const result = await query(
       `SELECT id, phone, password_hash, first_name, last_name, user_type, email, 
               region, avatar_url, bio, skills, is_blocked, is_verified
-       FROM users WHERE phone = $1`,
-      [phone]
+       FROM users WHERE phone = $1 OR email = $1`,
+      [phone] // phone parameter is used for both phone and email
     );
 
     if (result.rows.length === 0) {

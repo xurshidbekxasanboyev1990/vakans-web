@@ -227,10 +227,9 @@ class ApiService {
         };
       }
 
-      return {
-        success: true,
-        data: data,
-      };
+      // Backend already returns {success, data} format
+      // Just return it as-is
+      return data;
     } catch (error) {
       console.error('API request error:', error);
       console.error('Request URL:', url);

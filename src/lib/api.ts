@@ -306,7 +306,7 @@ class ApiService {
     // Real API
     const sanitizedData = sanitizeObject(userData);
 
-    const response = await this.request('/register', {
+    const response = await this.request('/auth/register', {
       method: 'POST',
       body: JSON.stringify(sanitizedData),
     });
@@ -356,7 +356,7 @@ class ApiService {
     }
 
     // Real API
-    const response = await this.request('/login', {
+    const response = await this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -380,7 +380,7 @@ class ApiService {
       return { success: true };
     }
 
-    const response = await this.request('/logout', {
+    const response = await this.request('/auth/logout', {
       method: 'POST',
       body: JSON.stringify({ deviceId }),
     });
@@ -407,7 +407,7 @@ class ApiService {
       return { success: false, error: 'Foydalanuvchi topilmadi' };
     }
 
-    return await this.request('/profile', {
+    return await this.request('/users/profile', {
       method: 'GET',
     });
   }
@@ -442,7 +442,7 @@ class ApiService {
       return { success: true, data: { profile: updatedUser } };
     }
 
-    return await this.request('/profile', {
+    return await this.request('/users/profile', {
       method: 'PUT',
       body: JSON.stringify(sanitizedUpdates),
     });
@@ -467,7 +467,7 @@ class ApiService {
       return { success: true };
     }
 
-    return await this.request('/profile', {
+    return await this.request('/users/profile', {
       method: 'DELETE',
     });
   }

@@ -50,7 +50,7 @@ export function rateLimiter(options: RateLimitOptions = {}) {
 // Specific rate limiters
 export const authRateLimiter = rateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
+  max: 100, // Increased for testing
   message: 'Ko\'p urinish. 15 daqiqadan keyin qayta urinib ko\'ring.',
   keyPrefix: 'auth'
 });

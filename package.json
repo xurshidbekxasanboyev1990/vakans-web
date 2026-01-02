@@ -68,6 +68,8 @@
     "react-responsive-masonry": "2.7.1",
     "react-router-dom": "^7.11.0",
     "react-slick": "0.31.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "recharts": "^3.6.0",
     "sonner": "2.0.3",
     "tailwind-merge": "3.2.0",
@@ -81,18 +83,6 @@
     "tailwindcss": "4.1.12",
     "terser": "^5.44.1",
     "vite": "6.3.5"
-  },
-  "peerDependencies": {
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
-  },
-  "peerDependenciesMeta": {
-    "react": {
-      "optional": true
-    },
-    "react-dom": {
-      "optional": true
-    }
   },
   "pnpm": {
     "overrides": {

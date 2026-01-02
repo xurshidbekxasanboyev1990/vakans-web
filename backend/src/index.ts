@@ -65,8 +65,8 @@ app.use('/api', apiRateLimiter);
 // ROUTES
 // ============================================
 
-// Health check
-app.get('/health', (req, res) => {
+// Health check - support both /health and /api/health
+app.get(['/health', '/api/health'], (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),

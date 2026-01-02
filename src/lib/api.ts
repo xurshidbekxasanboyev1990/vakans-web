@@ -322,14 +322,14 @@ class ApiService {
   /**
    * Login user
    */
-  async login(email: string, password: string): Promise<ApiResponse> {
+  async login(phone: string, password: string): Promise<ApiResponse> {
     // Demo mode
     if (DEMO_MODE) {
       const users = getDemoUsers();
       
       // Email yoki telefon bilan qidirish
       const user = users.find(u => 
-        (u.email === email || u.phone === email) && u.password === password
+        (u.email === phone || u.phone === phone) && u.password === password
       );
 
       if (!user) {
@@ -358,7 +358,7 @@ class ApiService {
     // Real API
     const response = await this.request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ phone, password }),
     });
 
     // If login successful, store tokens

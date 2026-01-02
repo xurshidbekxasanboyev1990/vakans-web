@@ -5,7 +5,7 @@ const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Demo mode - backend bo'lmasa local storage ishlatish
 // Backend ishga tushganda false qiling
-const DEMO_MODE = true;
+const DEMO_MODE = false;
 const DEMO_USERS_KEY = 'demo_users';
 const DEMO_CURRENT_USER_KEY = 'demo_current_user';
 

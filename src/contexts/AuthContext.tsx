@@ -23,7 +23,7 @@ interface AuthContextType {
     password: string,
     userData: Omit<UserProfile, 'id' | 'email'>
   ) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; user?: UserProfile }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: Error | null }>;
   isAuthenticated: () => boolean;
@@ -169,19 +169,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (response.data?.user) {
-        console.log('[AuthContext] Setting user:', response.data.user);
-        setUser(response.data.user);
-        localStorage.setItem('currentUser', JSON.stringify(response.data.user));
+        const userData = response.data.user;
+        setUser(userData);
+        localStorage.setItem('currentUser', JSON.stringify(userData));
         // Store deviceId for multi-device support
         if (response.data.deviceId) {
           sessionStorage.setItem('deviceId', response.data.deviceId);
         }
         toast.success('Xush kelibsiz!');
+        return { error: null, user: userData };
       } else {
-        console.error('[AuthContext] No user in response:', response);
+        return { error: new Error('No user data in response') };
       }
-
-      return { error: null };
     } catch (error) {
       console.error('Signin error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Xatolik yuz berdi';

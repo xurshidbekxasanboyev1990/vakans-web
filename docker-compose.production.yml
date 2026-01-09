@@ -23,8 +23,9 @@ services:
       - vakans_postgres_data:/var/lib/postgresql/data
       - ./backend/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
     # SECURITY: Bind to 127.0.0.1 ONLY (not publicly accessible)
+    # Using port 15432 to avoid conflict with other postgres instances
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:15432:5432"
     networks:
       - vakans_network
     healthcheck:

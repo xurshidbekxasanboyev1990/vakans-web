@@ -74,7 +74,7 @@ function ProtectedRoute({ children, requiredUserType }: { children: React.ReactN
   }
 
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
 
   // Admin check
@@ -413,10 +413,11 @@ function LoginPage({ userType }: { userType: 'worker' | 'employer' }) {
   const handleLogin = async (phone: string, password: string) => {
     const { error } = await signIn(phone, password);
     if (!error) {
-      const from = (location.state as { from?: Location })?.from?.pathname || 
-        (userType === 'worker' ? '/worker' : '/employer');
-      navigate(from, { replace: true });
+      // Login muvaffaqiyatli - to'g'ri dashboard sahifasiga yo'naltirish
+      const targetPath = userType === 'worker' ? '/worker' : '/employer';
+      navigate(targetPath, { replace: true });
     }
+    // Agar error bo'lsa, hech narsa qilmaydi - LoginForm da xato ko'rsatiladi
   };
 
   return (
@@ -435,7 +436,7 @@ function LoginPage({ userType }: { userType: 'worker' | 'employer' }) {
         </Suspense>
         
         <div className="text-center">
-          <Button variant="ghost" size="sm" className="text-xs sm:text-sm" onClick={() => navigate('/select-role')}>
+          <Button variant="ghost" size="sm" className="text-xs sm:text-sm" onClick={() => navigate('/')}>
             {t('back')}
           </Button>
         </div>

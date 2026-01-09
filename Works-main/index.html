@@ -1,0 +1,71 @@
+
+  <!DOCTYPE html>
+  <html lang="uz" class="light">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+      <meta name="description" content="Andijon viloyati uchun ish va ishchilar platformasi - Vakans.uz" />
+      <meta name="keywords" content="ish, vakansiya, andijon, ishchi, ish beruvchi, uzbekistan, work" />
+      <title>Vakans.uz - Ish va ishchilar platformasi</title>
+      
+      <!-- Performance Optimizations -->
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+      <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+      
+      <!-- Resource hints -->
+      <meta http-equiv="x-dns-prefetch-control" content="on" />
+      
+      <!-- Prevent theme flash - must be inline and blocking -->
+      <script>
+        (function() {
+          const storageKey = 'ui-theme';
+          const theme = localStorage.getItem(storageKey);
+          const root = document.documentElement;
+          
+          // Remove any existing theme class
+          root.classList.remove('light', 'dark');
+          
+          if (theme === 'dark') {
+            root.classList.add('dark');
+          } else if (theme === 'light') {
+            root.classList.add('light');
+          } else {
+            // System preference
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            root.classList.add(prefersDark ? 'dark' : 'light');
+          }
+        })();
+      </script>
+      
+      <!-- Set default language to Uzbek -->
+      <script>
+        if (!localStorage.getItem('app-language')) {
+          localStorage.setItem('app-language', 'uz');
+        }
+      </script>
+      
+      <!-- PWA Meta Tags -->
+      <meta name="theme-color" content="#3b82f6" />
+      <meta name="apple-mobile-web-app-capable" content="yes" />
+      <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+      <meta name="apple-mobile-web-app-title" content="Vakans.uz" />
+      <meta name="mobile-web-app-capable" content="yes" />
+      <meta name="msapplication-TileColor" content="#3b82f6" />
+      <meta name="msapplication-tap-highlight" content="no" />
+      
+      <!-- PWA Manifest -->
+      <link rel="manifest" href="/manifest.json" />
+      
+      <!-- Apple Touch Icons -->
+      <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
+      
+      <!-- Favicon -->
+      <link rel="icon" type="image/svg+xml" href="/icons/icon-192x192.svg" />
+    </head>
+
+    <body>
+      <div id="root"></div>
+      <script type="module" src="/src/main.tsx"></script>
+    </body>
+  </html>

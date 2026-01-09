@@ -54,8 +54,9 @@ services:
     volumes:
       - vakans_redis_data:/data
     # SECURITY: Bind to 127.0.0.1 ONLY
+    # Using port 16379 to avoid conflict with other redis instances
     ports:
-      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:16379:6379"
     networks:
       - vakans_network
     healthcheck:

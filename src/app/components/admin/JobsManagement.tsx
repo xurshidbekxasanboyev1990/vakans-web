@@ -45,7 +45,7 @@ export function JobsManagement({ jobs, onDeleteJob, onToggleFeatured, onApproveJ
   const now = new Date();
   const filteredJobs = jobs.filter(job => {
     const matchesSearch = (job.title || '').toLowerCase().includes(searchQuery.toLowerCase()) || (job.description || '').toLowerCase().includes(searchQuery.toLowerCase()) || (job.employerName || '').toLowerCase().includes(searchQuery.toLowerCase());
-    const isActive = job.deadline ? new Date(job.deadline) > now : job.status === 'active';
+    const isActive = job.deadline ? new Date(job.deadline) > now : (job.status === 'active' || job.status === 'paused');
     const isPending = (job as any).approvalStatus === 'pending' || job.status === 'draft';
     const isRejected = (job as any).approvalStatus === 'rejected';
     const isFeatured = job.featured || job.isVip;
@@ -53,9 +53,9 @@ export function JobsManagement({ jobs, onDeleteJob, onToggleFeatured, onApproveJ
     return matchesSearch && matchesStatus;
   });
 
-  const activeJobsCount = jobs.filter(j => (j.deadline ? new Date(j.deadline) > now : j.status === 'active') && (j as any).approvalStatus !== 'pending' && (j as any).approvalStatus !== 'rejected' && j.status !== 'draft').length;
+  const activeJobsCount = jobs.filter(j => (j.deadline ? new Date(j.deadline) > now : (j.status === 'active' || j.status === 'paused')) && (j as any).approvalStatus !== 'pending' && (j as any).approvalStatus !== 'rejected' && j.status !== 'draft').length;
   const pendingJobsCount = jobs.filter(j => (j as any).approvalStatus === 'pending' || j.status === 'draft').length;
-  const expiredJobsCount = jobs.filter(j => j.deadline ? new Date(j.deadline) < now : j.status === 'closed').length;
+  const expiredJobsCount = jobs.filter(j => j.deadline ? new Date(j.deadline) < now : (j.status === 'closed' || j.status === 'expired')).length;
   const featuredJobsCount = jobs.filter(j => j.featured || j.isVip).length;
   const totalViews = jobs.reduce((sum, j) => sum + (j.viewCount || 0), 0);
   const totalApplications = jobs.reduce((sum, j) => sum + (j.applicationCount || 0), 0);
@@ -99,7 +99,7 @@ export function JobsManagement({ jobs, onDeleteJob, onToggleFeatured, onApproveJ
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filteredJobs.length === 0 ? (<Card className="sm:col-span-2 lg:col-span-3"><CardContent className="py-12 text-center text-muted-foreground">Ishlar topilmadi</CardContent></Card>) : filteredJobs.map((job) => {
-          const isExpired = job.deadline ? new Date(job.deadline) < now : job.status === 'closed';
+          const isExpired = job.deadline ? new Date(job.deadline) < now : (job.status === 'closed' || job.status === 'expired');
           const isPending = (job as any).approvalStatus === 'pending' || job.status === 'draft';
           return (
             <Card key={job.id} className={`${isExpired ? 'opacity-60' : ''} ${isPending ? 'border-yellow-500 border-2' : ''} ${job.featured ? 'border-purple-500 border-2' : ''}`}>

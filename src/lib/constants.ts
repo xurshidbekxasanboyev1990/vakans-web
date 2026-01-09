@@ -257,23 +257,17 @@ export const EMPLOYMENT_TYPES_I18N = {
     ru: 'Неполный рабочий день',
     en: 'Part-time'
   },
+  'remote': {
+    uz: 'Masofadan (remote)',
+    uzk: 'Масофадан (remote)',
+    ru: 'Удалённо (remote)',
+    en: 'Remote'
+  },
   'contract': {
     uz: 'Shartnoma asosida',
     uzk: 'Шартнома асосида',
     ru: 'По контракту',
     en: 'Contract'
-  },
-  'freelance': {
-    uz: 'Frilanser',
-    uzk: 'Фрилансер',
-    ru: 'Фриланс',
-    en: 'Freelance'
-  },
-  'internship': {
-    uz: 'Amaliyot',
-    uzk: 'Амалиёт',
-    ru: 'Стажировка',
-    en: 'Internship'
   },
   'temporary': {
     uz: 'Vaqtinchalik',
@@ -287,9 +281,8 @@ export const EMPLOYMENT_TYPES_I18N = {
 export const EMPLOYMENT_TYPES = [
   { value: 'full-time', label: 'To\'liq ish kuni' },
   { value: 'part-time', label: 'Yarim ish kuni' },
+  { value: 'remote', label: 'Masofadan (remote)' },
   { value: 'contract', label: 'Shartnoma asosida' },
-  { value: 'freelance', label: 'Frilanser' },
-  { value: 'internship', label: 'Amaliyot' },
   { value: 'temporary', label: 'Vaqtinchalik' },
 ] as const;
 

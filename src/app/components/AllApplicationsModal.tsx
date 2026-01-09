@@ -40,8 +40,9 @@ export function AllApplicationsModal({
 
   // Filter applications
   const filteredApplications = applications.filter(app => {
-    const matchesSearch = app.workerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.message.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = searchQuery.toLowerCase();
+    const matchesSearch = (app.workerName || '').toLowerCase().includes(q) ||
+      (app.message || '').toLowerCase().includes(q);
     const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
     const matchesJob = jobFilter === 'all' || app.jobId === jobFilter;
     return matchesSearch && matchesStatus && matchesJob;

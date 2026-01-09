@@ -66,12 +66,17 @@ export function EmployerDashboard({
     setChatOpen(true);
   };
 
-  const handlePostJob = (job: Omit<JobData, 'id' | 'employerName' | 'employerRegion' | 'createdAt' | 'employerPhone' | 'status' | 'approvalStatus'>) => {
+  const handlePostJob = (job: any) => {
     onPostJob(job);
     setShowForm(false);
   };
 
   const handleStatusChange = (jobId: string, newStatus: string) => {
+    const job = myJobs.find(j => j.id === jobId);
+    if (job?.approvalStatus === 'pending' || job?.approvalStatus === 'rejected') {
+      return;
+    }
+
     if (onJobStatusChange) {
       onJobStatusChange(jobId, newStatus);
     }
@@ -339,7 +344,7 @@ export function EmployerDashboard({
                     )}
                     
                     {/* Status Control Buttons */}
-                    {onJobStatusChange && (
+                    {onJobStatusChange && job.approvalStatus !== 'pending' && job.approvalStatus !== 'rejected' && (
                       <div className="flex flex-col gap-2">
                         {job.status === 'active' && (
                           <>

@@ -86,8 +86,12 @@ router.post('/register', authRateLimiter, async (req: AuthRequest, res: Response
 // ============================================
 router.post('/login', authRateLimiter, async (req: AuthRequest, res: Response) => {
   try {
+    console.log('=== LOGIN REQUEST ===');
+    console.log('Body:', JSON.stringify(req.body));
+    
     const validation = loginSchema.safeParse(req.body);
     if (!validation.success) {
+      console.log('Validation failed:', validation.error.errors);
       res.status(400).json({ 
         success: false, 
         error: 'Telefon yoki parol noto\'g\'ri' 
@@ -96,6 +100,7 @@ router.post('/login', authRateLimiter, async (req: AuthRequest, res: Response) =
     }
 
     const { phone, password } = validation.data;
+    console.log('Phone:', phone, 'Password length:', password?.length);
 
     // Find user by phone OR email
     const result = await query(

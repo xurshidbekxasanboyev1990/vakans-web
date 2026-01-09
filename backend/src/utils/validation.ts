@@ -37,29 +37,35 @@ export const updateProfileSchema = z.object({
 
 // Job schemas
 export const createJobSchema = z.object({
-  title: z.string().min(5, 'Sarlavha kamida 5 ta belgi').max(255),
-  description: z.string().min(20, 'Tavsif kamida 20 ta belgi').max(5000),
-  categoryId: z.string().uuid().optional(),
+  title: z.string().min(2, 'Sarlavha kamida 2 ta belgi').max(255),
+  description: z.string().min(2, 'Tavsif kamida 2 ta belgi').max(5000),
+  // Accept either UUID or a category name/value; route resolves to category_id.
+  categoryId: z.string().max(255).optional(),
   requirements: z.array(z.string()).optional(),
   salaryMin: z.number().min(0).optional(),
   salaryMax: z.number().min(0).optional(),
   salaryType: z.enum(['hourly', 'daily', 'monthly', 'fixed']).default('monthly'),
   currency: z.string().default('UZS'),
   location: z.string().max(255).optional(),
-  region: z.string().max(100),
+  region: z.string().max(100).default('Toshkent shahri'),
   address: z.string().max(500).optional(),
   workType: z.enum(['full-time', 'part-time', 'remote', 'contract', 'temporary']).default('full-time'),
   experienceRequired: z.string().max(50).optional(),
   educationRequired: z.string().max(100).optional(),
   languagesRequired: z.array(z.string()).optional(),
   benefits: z.array(z.string()).optional(),
-  contactPhone: phoneSchema.optional(),
+  // For job posts, don't hard-fail on phone formatting.
+  contactPhone: z.string().max(50).optional(),
   contactEmail: z.string().email().optional(),
   isUrgent: z.boolean().default(false),
   deadline: z.string().optional()
 });
 
-export const updateJobSchema = createJobSchema.partial();
+// Allow updating job fields (partial) + status (moderation/visibility)
+// Note: createJobSchema intentionally omits status (set by backend moderation flow)
+export const updateJobSchema = createJobSchema.partial().extend({
+  status: z.enum(['pending', 'active', 'paused', 'rejected', 'closed', 'expired']).optional()
+});
 
 // Application schemas
 export const createApplicationSchema = z.object({

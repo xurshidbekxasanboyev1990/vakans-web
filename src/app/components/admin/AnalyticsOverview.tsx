@@ -13,11 +13,11 @@ export function AnalyticsOverview({ jobs, users }: AnalyticsOverviewProps) {
   const workers = users.filter(u => u.userType === 'worker').length;
   const employers = users.filter(u => u.userType === 'employer').length;
   const totalJobs = jobs.length;
-  const activeJobs = jobs.filter(j => j.deadline ? new Date(j.deadline) > new Date() : j.status === 'active').length;
+  const activeJobs = jobs.filter(j => j.deadline ? new Date(j.deadline) > new Date() : (j.status === 'active' || j.status === 'paused')).length;
   
   // Daromad statistikasi
-  const paidJobs = jobs.filter(j => j.paymentStatus === 'paid' && (j.status === 'approved' || j.status === 'active'));
-  const freeJobs = jobs.filter(j => (j.paymentStatus === 'free' || !j.paymentStatus) && (j.status === 'approved' || j.status === 'active'));
+  const paidJobs = jobs.filter(j => j.paymentStatus === 'paid' && (j.status === 'approved' || j.status === 'active' || j.status === 'paused'));
+  const freeJobs = jobs.filter(j => (j.paymentStatus === 'free' || !j.paymentStatus) && (j.status === 'approved' || j.status === 'active' || j.status === 'paused'));
   const pendingPaymentJobs = jobs.filter(j => j.paymentStatus === 'pending');
   
   // Narxlar (so'm)

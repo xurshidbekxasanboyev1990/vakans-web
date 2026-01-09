@@ -6,6 +6,7 @@ import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { QueryProvider } from '../lib/QueryProvider';
 import { ErrorBoundary } from '../lib/ErrorBoundary';
+import { apiService } from '../lib/api';
 import { Toaster } from './components/ui/sonner';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
@@ -470,23 +471,20 @@ function WorkerProfilePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const handleUpdateUser = (updates: Partial<UserType>) => {
+  const handleUpdateUser = async (updates: Partial<UserType>) => {
     if (!user) return;
     
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const userIndex = users.findIndex((u: any) => u.id === user.id);
-    
-    if (userIndex !== -1) {
-      users[userIndex] = { ...users[userIndex], ...updates };
-      localStorage.setItem('users', JSON.stringify(users));
+    try {
+      const response = await apiService.updateProfile(updates);
+      if (response.success) {
+        toast.success('Profil yangilandi!');
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        toast.error(response.error || 'Xatolik');
+      }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
     }
-    
-    const currentUser = JSON.parse(localStorage.getItem('demo_current_user') || '{}');
-    localStorage.setItem('demo_current_user', JSON.stringify({ ...currentUser, ...updates }));
-    localStorage.setItem('currentUser', JSON.stringify({ ...currentUser, ...updates }));
-    
-    toast.success('Profil yangilandi!');
-    setTimeout(() => window.location.reload(), 500);
   };
 
   if (!user) {
@@ -506,23 +504,20 @@ function EmployerProfilePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const handleUpdateUser = (updates: Partial<UserType>) => {
+  const handleUpdateUser = async (updates: Partial<UserType>) => {
     if (!user) return;
     
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const userIndex = users.findIndex((u: any) => u.id === user.id);
-    
-    if (userIndex !== -1) {
-      users[userIndex] = { ...users[userIndex], ...updates };
-      localStorage.setItem('users', JSON.stringify(users));
+    try {
+      const response = await apiService.updateProfile(updates);
+      if (response.success) {
+        toast.success('Profil yangilandi!');
+        setTimeout(() => window.location.reload(), 500);
+      } else {
+        toast.error(response.error || 'Xatolik');
+      }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
     }
-    
-    const currentUser = JSON.parse(localStorage.getItem('demo_current_user') || '{}');
-    localStorage.setItem('demo_current_user', JSON.stringify({ ...currentUser, ...updates }));
-    localStorage.setItem('currentUser', JSON.stringify({ ...currentUser, ...updates }));
-    
-    toast.success('Profil yangilandi!');
-    setTimeout(() => window.location.reload(), 500);
   };
 
   if (!user) {
@@ -541,27 +536,73 @@ function WorkerDashboardPage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   
-  // Barcha ish e'lonlarini yuklash (employer'lar joylashtirganlari)
-  const [allJobs, setAllJobs] = useState<JobData[]>(() => {
-    const savedJobs = localStorage.getItem('employer_jobs');
-    return savedJobs ? JSON.parse(savedJobs) : [];
-  });
+  // API'dan ishlarni yuklash
+  const [allJobs, setAllJobs] = useState<JobData[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Refresh - yangi ishlarni yuklash
+  const backendJobToJobData = (job: any): JobData => {
+    const employerName =
+      job?.employer?.companyName ||
+      [job?.employer?.firstName, job?.employer?.lastName].filter(Boolean).join(' ') ||
+      job?.employerName ||
+      'Noma\'lum';
+
+    const approvalStatus: any =
+      job?.status === 'pending' ? 'pending' : job?.status === 'rejected' ? 'rejected' : 'approved';
+
+    const status: any =
+      job?.status === 'active'
+        ? 'active'
+        : job?.status === 'paused'
+          ? 'paused'
+          : job?.status === 'closed' || job?.status === 'expired'
+            ? 'completed'
+            : 'paused';
+
+    const salary = typeof job?.salaryMin === 'number' ? job.salaryMin : typeof job?.salaryMax === 'number' ? job.salaryMax : undefined;
+
+    return {
+      id: job.id,
+      employerName,
+      employerRegion: job?.employer?.region || job.region || '',
+      employerPhone: job?.employer?.phone,
+      title: job.title,
+      description: job.description || '',
+      category: job.category,
+      startDate: job.createdAt || new Date().toISOString(),
+      durationType: 'few-days',
+      status,
+      approvalStatus,
+      rejectionReason: job.rejectionReason,
+      salary,
+      paymentType: job.salaryType || 'negotiable',
+      featured: !!job.isFeatured,
+      isUrgent: !!job.isUrgent,
+      createdAt: job.createdAt || new Date().toISOString(),
+      deadline: job.deadline,
+    };
+  };
+
+  // API'dan ishlarni yuklash
   useEffect(() => {
-    const handleStorageChange = () => {
-      const savedJobs = localStorage.getItem('employer_jobs');
-      setAllJobs(savedJobs ? JSON.parse(savedJobs) : []);
+    const loadJobs = async () => {
+      try {
+        const response = await apiService.getJobs();
+        if (response.success && response.data) {
+          const jobsData = response.data.jobs || response.data;
+          setAllJobs(Array.isArray(jobsData) ? jobsData.map(backendJobToJobData) : []);
+        }
+      } catch (error) {
+        console.error('Jobs load error:', error);
+      } finally {
+        setLoading(false);
+      }
     };
     
-    window.addEventListener('storage', handleStorageChange);
-    // Har 5 sekundda tekshirish
-    const interval = setInterval(handleStorageChange, 5000);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      clearInterval(interval);
-    };
+    loadJobs();
+    // Har 30 sekundda yangilash
+    const interval = setInterval(loadJobs, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleLogout = async () => {
@@ -569,54 +610,35 @@ function WorkerDashboardPage() {
     navigate('/', { replace: true });
   };
 
-  const handleApply = (jobId: string, message: string) => {
+  const handleApply = async (jobId: string, message: string) => {
     if (!user) return;
     
-    // Arizani saqlash
-    const existingApps = JSON.parse(localStorage.getItem('employer_applications') || '[]');
-    const newApplication: Application = {
-      id: `app-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      jobId,
-      workerId: user.id,
-      workerName: `${user.firstName} ${user.lastName}`,
-      workerRegion: user.region,
-      workerPhone: user.phone,
-      message,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    };
-    existingApps.push(newApplication);
-    localStorage.setItem('employer_applications', JSON.stringify(existingApps));
-    toast.success('Ariza yuborildi!');
+    try {
+      const response = await apiService.applyToJob(jobId, message);
+      if (response.success) {
+        toast.success('Ariza yuborildi!');
+      } else {
+        toast.error(response.error || 'Xatolik yuz berdi');
+      }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
+    }
   };
 
-  const handleUpdateUser = (updates: Partial<UserType>) => {
+  const handleUpdateUser = async (updates: Partial<UserType>) => {
     if (!user) return;
     
-    // LocalStorage'dan foydalanuvchilarni olish
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const userIndex = users.findIndex((u: any) => u.id === user.id);
-    
-    if (userIndex !== -1) {
-      users[userIndex] = { ...users[userIndex], ...updates };
-      localStorage.setItem('users', JSON.stringify(users));
-    } else {
-      // Agar user topilmasa, yangi qo'shamiz
-      users.push({ ...user, ...updates });
-      localStorage.setItem('users', JSON.stringify(users));
+    try {
+      const response = await apiService.updateProfile(updates);
+      if (response.success) {
+        toast.success('Profil yangilandi!');
+        window.location.reload();
+      } else {
+        toast.error(response.error || 'Xatolik');
+      }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
     }
-    
-    // Demo mode uchun current user'ni yangilash (API bilan mos key)
-    const currentUser = JSON.parse(localStorage.getItem('demo_current_user') || '{}');
-    const updatedCurrentUser = { ...currentUser, ...updates };
-    localStorage.setItem('demo_current_user', JSON.stringify(updatedCurrentUser));
-    
-    // Eski key uchun ham yangilash (backward compatibility)
-    localStorage.setItem('currentUser', JSON.stringify(updatedCurrentUser));
-    
-    toast.success('Profil yangilandi!');
-    // Sahifani yangilash uchun
-    window.location.reload();
   };
 
   if (!user) return null;
@@ -642,168 +664,328 @@ function WorkerDashboardPage() {
 function EmployerDashboardPage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [jobs, setJobs] = useState<JobData[]>(() => {
-    // LocalStorage'dan ishlarni yuklash
-    const savedJobs = localStorage.getItem('employer_jobs');
-    return savedJobs ? JSON.parse(savedJobs) : [];
-  });
-  const [applications, setApplications] = useState<Application[]>(() => {
-    const savedApps = localStorage.getItem('employer_applications');
-    return savedApps ? JSON.parse(savedApps) : [];
-  });
+  const [jobs, setJobs] = useState<JobData[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [categories, setCategories] = useState<Array<{id: string; name: string}>>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Notification qo'shish funksiyasi - worker uchun
-  const addWorkerNotification = (workerId: string, notification: {
-    type: 'application' | 'job_status' | 'message';
-    title: string;
-    message: string;
-    jobId?: string;
-  }) => {
-    const notificationsKey = `worker_notifications_${workerId}`;
-    const existingNotifications = JSON.parse(localStorage.getItem(notificationsKey) || '[]');
-    const newNotification = {
-      id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      ...notification,
-      timestamp: new Date().toISOString(),
-      read: false,
+  const backendApplicationToApplication = (app: any): Application => {
+    const workerName =
+      app?.worker?.fullName ||
+      [app?.worker?.firstName, app?.worker?.lastName].filter(Boolean).join(' ') ||
+      app?.workerName ||
+      'Noma\'lum';
+
+    const status: any =
+      app?.status === 'accepted' || app?.status === 'rejected' || app?.status === 'pending'
+        ? app.status
+        : 'pending';
+
+    return {
+      id: String(app?.id ?? ''),
+      jobId: String(app?.jobId ?? app?.job?.id ?? ''),
+      workerId: String(app?.workerId ?? app?.worker?.id ?? ''),
+      workerName,
+      workerRegion: String(app?.worker?.region ?? app?.workerRegion ?? ''),
+      workerPhone: app?.worker?.phone ?? app?.workerPhone,
+      message: String(app?.coverLetter ?? app?.message ?? ''),
+      status,
+      createdAt: String(app?.createdAt ?? new Date().toISOString()),
     };
-    localStorage.setItem(notificationsKey, JSON.stringify([newNotification, ...existingNotifications]));
   };
 
-  // Ishlarni localStorage'ga saqlash
-  const saveJobs = (newJobs: JobData[]) => {
-    localStorage.setItem('employer_jobs', JSON.stringify(newJobs));
-    setJobs(newJobs);
+  const backendJobToJobData = (job: any): JobData => {
+    const employerName =
+      job?.employer?.companyName ||
+      [job?.employer?.firstName, job?.employer?.lastName].filter(Boolean).join(' ') ||
+      job?.employerName ||
+      user?.firstName ||
+      'Noma\'lum';
+
+    const approvalStatus: any =
+      job?.status === 'pending' ? 'pending' : job?.status === 'rejected' ? 'rejected' : 'approved';
+
+    const status: any =
+      job?.status === 'active'
+        ? 'active'
+        : job?.status === 'paused'
+          ? 'paused'
+          : job?.status === 'closed' || job?.status === 'expired'
+            ? 'completed'
+            : 'paused';
+
+    const salary = typeof job?.salaryMin === 'number' ? job.salaryMin : typeof job?.salaryMax === 'number' ? job.salaryMax : undefined;
+
+    return {
+      id: job.id,
+      employerName,
+      employerRegion: job?.employer?.region || job.region || user?.region || '',
+      employerPhone: job?.employer?.phone || user?.phone,
+      title: job.title,
+      description: job.description || '',
+      category: job.category,
+      startDate: job.createdAt || new Date().toISOString(),
+      durationType: 'few-days',
+      status,
+      approvalStatus,
+      rejectionReason: job.rejectionReason,
+      salary,
+      paymentType: job.salaryType || 'negotiable',
+      featured: !!job.isFeatured,
+      isUrgent: !!job.isUrgent,
+      createdAt: job.createdAt || new Date().toISOString(),
+      deadline: job.deadline,
+    };
   };
+
+  // API'dan ishlarni yuklash
+  const loadJobs = async () => {
+    try {
+      const response = await apiService.getJobs();
+      if (response.success && response.data) {
+        const jobsData = response.data.jobs || response.data;
+        // Faqat o'z ishlarini ko'rsatish
+        const myJobsRaw = Array.isArray(jobsData)
+          ? jobsData.filter((job: any) => job.employer?.id === user?.id || job.employerId === user?.id)
+          : [];
+        setJobs(myJobsRaw.map(backendJobToJobData));
+      }
+    } catch (error) {
+      console.error('Jobs load error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Arizalarni yuklash
+  const loadApplications = async () => {
+    try {
+      const response = await apiService.getApplications();
+      if (response.success && response.data) {
+        const appsData = response.data.applications || response.data;
+        setApplications(Array.isArray(appsData) ? appsData.map(backendApplicationToApplication) : []);
+      }
+    } catch (error) {
+      console.error('Applications load error:', error);
+    }
+  };
+
+  // Komponent yuklanganida
+  useEffect(() => {
+    loadJobs();
+    loadApplications();
+
+    const interval = setInterval(() => {
+      loadJobs();
+      loadApplications();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [user?.id]);
+
+  // Kategoriyalarni yuklash
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await apiService.getCategories();
+        if (response.success && response.data) {
+          setCategories(response.data);
+        }
+      } catch (error) {
+        console.error('Categories load error:', error);
+      }
+    };
+    loadCategories();
+  }, []);
 
   const handleLogout = async () => {
     await signOut();
     navigate('/', { replace: true });
   };
 
-  const handlePostJob = (jobData: Omit<JobData, 'id' | 'employerName' | 'employerRegion' | 'createdAt' | 'employerPhone' | 'status' | 'approvalStatus'>) => {
+  const handlePostJob = async (jobData: any) => {
+    console.log('=== handlePostJob CALLED ===');
+    console.log('jobData:', jobData);
+    console.log('user:', user);
+    
     if (!user) {
-      console.error('User not found! Cannot post job.');
-      toast.error('Foydalanuvchi topilmadi. Qayta kiring.');
+      toast.error('Login qiling!');
       return;
     }
     
-    const newJob: JobData = {
-      ...jobData,
-      id: `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      employerName: `${user.firstName} ${user.lastName}`,
-      employerRegion: user.region,
-      employerPhone: user.phone,
-      status: 'active',
-      approvalStatus: 'pending', // Admin tasdiqlashini kutadi
-      createdAt: new Date().toISOString(),
-    };
-    
-    const updatedJobs = [newJob, ...jobs];
-    saveJobs(updatedJobs);
-    toast.success("Ish e'lon qilindi! Admin tasdiqlashini kutmoqda.");
-  };
+    try {
+      const normalizeUzPhone = (phone?: string | null): string | undefined => {
+        if (!phone) return undefined;
+        const digits = String(phone).replace(/\D/g, '');
+        if (digits.length === 12 && digits.startsWith('998')) return `+${digits}`;
+        if (digits.length === 9) return `+998${digits}`;
+        if (/^\+998\d{9}$/.test(phone)) return phone;
+        return undefined;
+      };
 
-  const handleJobStatusChange = (jobId: string, newStatus: string) => {
-    const job = jobs.find(j => j.id === jobId);
-    const updatedJobs = jobs.map(j => 
-      j.id === jobId ? { ...j, status: newStatus as JobData['status'] } : j
-    );
-    saveJobs(updatedJobs);
-    
-    // Ish holatini o'zgartirganda arizachi ishchilarga xabar berish
-    if (job) {
-      const jobApps = applications.filter(app => app.jobId === jobId && app.status === 'accepted');
-      jobApps.forEach(app => {
-        addWorkerNotification(app.workerId, {
-          type: 'job_status',
-          title: newStatus === 'completed' ? '✅ Ish yakunlandi!' : newStatus === 'cancelled' ? '❌ Ish bekor qilindi' : '📋 Ish holati o\'zgardi',
-          message: `"${job.title}" ishi ${newStatus === 'completed' ? 'muvaffaqiyatli yakunlandi' : newStatus === 'cancelled' ? 'bekor qilindi' : 'holati o\'zgardi'}`,
-          jobId,
-        });
-      });
+      const mapPaymentTypeToSalaryType = (paymentType: any): 'hourly' | 'daily' | 'monthly' | 'fixed' => {
+        switch (paymentType) {
+          case 'hourly':
+            return 'hourly';
+          case 'daily':
+            return 'daily';
+          case 'monthly':
+            return 'monthly';
+          case 'weekly':
+            // Backend/DB enum'da weekly yo'q, fixed sifatida yuboramiz
+            return 'fixed';
+          case 'negotiable':
+          default:
+            // Kelishiladi -> salaryMin yubormaymiz, salaryType fixed
+            return 'fixed';
+        }
+      };
+
+      const salaryType = mapPaymentTypeToSalaryType(jobData.paymentType);
+      const salaryMin = typeof jobData.salary === 'number'
+        ? jobData.salary
+        : (typeof jobData.salary === 'string' && jobData.salary.trim() ? parseFloat(jobData.salary) : undefined);
+
+      // Kategoriya ID topish
+      let categoryId: string | undefined = undefined;
+      if (jobData.category && categories.length > 0) {
+        const cat = categories.find(c => c.name.toLowerCase().includes(jobData.category.toLowerCase()));
+        categoryId = cat?.id || categories[0]?.id;
+      }
+      
+      console.log('categoryId:', categoryId);
+      console.log('categories:', categories);
+
+      const data = {
+        title: jobData.title,
+        description: jobData.description,
+        categoryId: categoryId,
+        salaryMin: jobData.paymentType === 'negotiable' ? undefined : (Number.isFinite(salaryMin as number) ? salaryMin : undefined),
+        salaryMax: undefined,
+        salaryType,
+        currency: 'UZS',
+        location: '',
+        region: user.region || 'Toshkent shahri',
+        address: undefined,
+        workType: 'full-time',
+        experienceRequired: undefined,
+        educationRequired: undefined,
+        languagesRequired: [],
+        requirements: [],
+        benefits: [],
+        contactPhone: normalizeUzPhone(user.phone),
+        contactEmail: user.email || undefined,
+        isUrgent: false,
+        deadline: jobData.deadline || undefined
+      };
+      
+      console.log('Sending to API:', data);
+
+      const response = await apiService.postJob(data);
+      
+      console.log('API Response:', response);
+      
+      if (response.success) {
+        toast.success("Ish yaratildi!");
+        await loadJobs();
+      } else {
+        const details = (response as any)?.details;
+        const firstDetailMessage = Array.isArray(details) && details.length ? details[0]?.message : undefined;
+        toast.error(firstDetailMessage || response.error || "Xatolik!");
+        console.error('API Error:', response.error, details);
+      }
+    } catch (error) {
+      console.error('handlePostJob Error:', error);
+      toast.error("Xatolik yuz berdi!");
     }
-    
-    toast.success(`Ish holati o'zgartirildi: ${newStatus}`);
   };
 
-  const handleAcceptApplication = (appId: string) => {
-    const app = applications.find(a => a.id === appId);
-    const updatedApps = applications.map(a =>
-      a.id === appId ? { ...a, status: 'accepted' as const } : a
-    );
-    localStorage.setItem('employer_applications', JSON.stringify(updatedApps));
-    setApplications(updatedApps);
-    
-    // Worker'ga notification yuborish
-    if (app) {
-      const job = jobs.find(j => j.id === app.jobId);
-      addWorkerNotification(app.workerId, {
-        type: 'application',
-        title: '🎉 Arizangiz qabul qilindi!',
-        message: `"${job?.title || 'Ish'}" uchun arizangiz qabul qilindi. Ish beruvchi bilan bog'lanishingiz mumkin.`,
-        jobId: app.jobId,
-      });
+  const handleJobStatusChange = async (jobId: string, newStatus: string) => {
+    try {
+      const mapUiStatusToApiStatus = (status: string) => {
+        // Backend uses: pending | active | paused | rejected | closed | expired
+        // UI uses: active | paused | completed | cancelled
+        switch (status) {
+          case 'paused':
+            return 'paused';
+          case 'completed':
+          case 'cancelled':
+            return 'closed';
+          default:
+            return status;
+        }
+      };
+
+      const apiStatus = mapUiStatusToApiStatus(newStatus);
+
+      const response = await apiService.updateJob(jobId, { status: apiStatus });
+      if (response.success) {
+        toast.success(`Ish holati o'zgartirildi: ${newStatus}`);
+        await loadJobs();
+      } else {
+        toast.error(response.error || 'Xatolik');
+      }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
     }
-    
-    toast.success('Ariza qabul qilindi');
   };
 
-  const handleRejectApplication = (appId: string) => {
-    const app = applications.find(a => a.id === appId);
-    const updatedApps = applications.map(a =>
-      a.id === appId ? { ...a, status: 'rejected' as const } : a
-    );
-    localStorage.setItem('employer_applications', JSON.stringify(updatedApps));
-    setApplications(updatedApps);
-    
-    // Worker'ga notification yuborish
-    if (app) {
-      const job = jobs.find(j => j.id === app.jobId);
-      addWorkerNotification(app.workerId, {
-        type: 'application',
-        title: '😔 Arizangiz rad etildi',
-        message: `"${job?.title || 'Ish'}" uchun arizangiz rad etildi. Boshqa imkoniyatlarni ko'ring.`,
-        jobId: app.jobId,
-      });
+  const handleAcceptApplication = async (appId: string) => {
+    try {
+      const response = await apiService.updateApplication(appId, 'accepted');
+      if (response.success) {
+        toast.success('Ariza qabul qilindi');
+        await loadApplications();
+      } else {
+        toast.error(response.error || 'Xatolik');
+      }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
     }
-    
-    toast.success('Ariza rad etildi');
   };
 
-  const handleDeleteJob = (jobId: string) => {
-    const updatedJobs = jobs.filter(j => j.id !== jobId);
-    saveJobs(updatedJobs);
-    toast.success("Ish o'chirildi!");
+  const handleRejectApplication = async (appId: string) => {
+    try {
+      const response = await apiService.updateApplication(appId, 'rejected');
+      if (response.success) {
+        toast.success('Ariza rad etildi');
+        await loadApplications();
+      } else {
+        toast.error(response.error || 'Xatolik');
+      }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
+    }
   };
 
-  const handleUpdateUser = (updates: Partial<UserType>) => {
+  const handleDeleteJob = async (jobId: string) => {
+    try {
+      const response = await apiService.deleteJob(jobId);
+      if (response.success) {
+        toast.success("Ish o'chirildi!");
+        await loadJobs();
+      } else {
+        toast.error(response.error || 'Xatolik');
+      }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
+    }
+  };
+
+  const handleUpdateUser = async (updates: Partial<UserType>) => {
     if (!user) return;
     
-    // LocalStorage'dan foydalanuvchilarni olish
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const userIndex = users.findIndex((u: any) => u.id === user.id);
-    
-    if (userIndex !== -1) {
-      users[userIndex] = { ...users[userIndex], ...updates };
-      localStorage.setItem('users', JSON.stringify(users));
-    } else {
-      // Agar user topilmasa, yangi qo'shamiz
-      users.push({ ...user, ...updates });
-      localStorage.setItem('users', JSON.stringify(users));
+    try {
+      const response = await apiService.updateProfile(updates);
+      if (response.success) {
+        toast.success('Profil yangilandi!');
+        window.location.reload();
+      } else {
+        toast.error(response.error || 'Xatolik');
+      }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
     }
-    
-    // Demo mode uchun current user'ni yangilash (API bilan mos key)
-    const currentUser = JSON.parse(localStorage.getItem('demo_current_user') || '{}');
-    const updatedCurrentUser = { ...currentUser, ...updates };
-    localStorage.setItem('demo_current_user', JSON.stringify(updatedCurrentUser));
-    
-    // Eski key uchun ham yangilash (backward compatibility)
-    localStorage.setItem('currentUser', JSON.stringify(updatedCurrentUser));
-    
-    toast.success('Profil yangilandi!');
-    // Sahifani yangilash uchun
-    window.location.reload();
   };
 
   if (!user) return null;
@@ -827,42 +1009,6 @@ function EmployerDashboardPage() {
     </Suspense>
   );
 }
-
-// Demo jobs va users
-const DEMO_JOBS = [
-  {
-    id: '1',
-    title: 'Uy tozalash',
-    description: 'Haftalik uy tozalash ishlariga ishchi kerak',
-    salary: 150000,
-    price: '150,000 so\'m',
-    location: 'Toshkent shahri',
-    category: 'Xizmat ko\'rsatish',
-    status: 'active' as const,
-    employerId: 'employer-001',
-    employerName: 'Nodira Saidova',
-    employerPhone: '+998912345678',
-    employerRegion: 'Samarqand viloyati',
-    deadline: '2025-01-15',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    title: 'Bog\' parvarishi',
-    description: 'Hovlidagi bog\'ni parvarish qilish',
-    salary: 200000,
-    price: '200,000 so\'m',
-    location: 'Toshkent viloyati',
-    category: 'Qishloq xo\'jaligi',
-    status: 'active' as const,
-    employerId: 'employer-001',
-    employerName: 'Nodira Saidova',
-    employerPhone: '+998912345678',
-    employerRegion: 'Samarqand viloyati',
-    deadline: '2025-01-20',
-    createdAt: new Date().toISOString(),
-  },
-];
 
 function AdminLoginPage() {
   const { t } = useLanguage();
@@ -1064,210 +1210,250 @@ function AdminLoginPage() {
 function AdminDashboardPage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Demo users from localStorage
-  const getDemoUsersFromStorage = () => {
-    const stored = localStorage.getItem('demo_users');
-    return stored ? JSON.parse(stored) : [];
+  const mapBackendJobToAdminJob = (job: any) => {
+    const employerName =
+      job?.employer?.companyName ||
+      [job?.employer?.firstName, job?.employer?.lastName].filter(Boolean).join(' ') ||
+      'Noma\'lum';
+
+    const approvalStatus =
+      job?.status === 'pending' ? 'pending' : job?.status === 'rejected' ? 'rejected' : 'approved';
+
+    return {
+      id: job.id,
+      title: job.title,
+      description: job.description,
+      category: job.category || '',
+      location: job.location || '',
+      employerId: job?.employer?.id || '',
+      employerName,
+      employerPhone: job?.employer?.phone || '',
+      employerRegion: job.region || '',
+      salaryMin: job.salaryMin,
+      salaryMax: job.salaryMax,
+      salary: job.salaryMin ?? job.salaryMax,
+      price: undefined,
+      status: job.status || 'active',
+      featured: !!job.isFeatured,
+      isVip: !!job.isFeatured,
+      isUrgent: !!job.isUrgent,
+      viewCount: job.viewsCount,
+      applicationCount: job.applicationsCount,
+      deadline: job.deadline,
+      createdAt: job.createdAt,
+      approvalStatus,
+      rejectionReason: job.rejectionReason,
+      imageUrl: undefined,
+      startDate: job.createdAt,
+      durationType: 'few-days',
+      paymentType: job.salaryType,
+    };
   };
 
-  // Real jobs from localStorage
-  const getJobsFromStorage = () => {
-    const stored = localStorage.getItem('employer_jobs');
-    return stored ? JSON.parse(stored) : DEMO_JOBS;
+  const mapBackendUserToAdminUser = (u: any) => {
+    return {
+      id: u.id,
+      phone: u.phone || '',
+      email: u.email || '',
+      firstName: u.firstName || '',
+      lastName: u.lastName || '',
+      userType: u.userType,
+      region: u.region || '',
+      blocked: !!u.isBlocked,
+      isAdmin: u.userType === 'admin',
+      createdAt: u.createdAt,
+      updatedAt: undefined,
+      plainPassword: undefined,
+    };
   };
 
-  // Real applications from localStorage
-  const getApplicationsFromStorage = () => {
-    const stored = localStorage.getItem('employer_applications');
-    return stored ? JSON.parse(stored) : [];
+  const mapBackendAdminApplication = (a: any) => {
+    return {
+      id: a.id,
+      jobId: a.jobId,
+      jobTitle: a.jobTitle,
+      workerId: '',
+      workerName: a.workerName || '',
+      workerPhone: '',
+      employerId: '',
+      employerName: a.employerName || '',
+      status: a.status,
+      createdAt: a.createdAt,
+    };
   };
+
+  // API'dan ma'lumotlarni yuklash
+  const loadData = async () => {
+    try {
+      // Ishlarni yuklash
+      const jobsResponse = await apiService.getJobs();
+      if (jobsResponse.success && jobsResponse.data) {
+        const jobsData = jobsResponse.data.jobs || jobsResponse.data;
+        setJobs(Array.isArray(jobsData) ? jobsData.map(mapBackendJobToAdminJob) : []);
+      }
+
+      // Foydalanuvchilarni yuklash
+      const usersResponse = await apiService.getAllUsers();
+      if (usersResponse.success && usersResponse.data) {
+        const usersData = usersResponse.data.users || usersResponse.data;
+        setUsers(Array.isArray(usersData) ? usersData.map(mapBackendUserToAdminUser) : []);
+      }
+
+      // Arizalarni yuklash
+      const appsResponse = await apiService.getAdminApplications();
+      if (appsResponse.success && appsResponse.data) {
+        const appsData = appsResponse.data.applications || appsResponse.data;
+        setApplications(Array.isArray(appsData) ? appsData.map(mapBackendAdminApplication) : []);
+      }
+    } catch (error) {
+      console.error('Admin data load error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+
+    const interval = setInterval(loadData, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = async () => {
     await signOut();
     navigate('/', { replace: true });
   };
 
-  const handleDeleteJob = (jobId: string) => {
-    const jobs = getJobsFromStorage();
-    const updatedJobs = jobs.filter((j: any) => j.id !== jobId);
-    localStorage.setItem('employer_jobs', JSON.stringify(updatedJobs));
-    toast.success(`Ish o'chirildi!`);
-    window.location.reload();
-  };
-
-  const handleBlockUser = (userId: string) => {
-    // Demo users dan o'zgartirish
-    const users = getDemoUsersFromStorage();
-    const updatedUsers = users.map((u: any) => 
-      u.id === userId ? { ...u, blocked: !u.blocked } : u
-    );
-    localStorage.setItem('demo_users', JSON.stringify(updatedUsers));
-    
-    const blockedUser = users.find((u: any) => u.id === userId);
-    if (blockedUser?.blocked) {
-      toast.success(`Foydalanuvchi blokdan chiqarildi`);
-    } else {
-      toast.success(`Foydalanuvchi bloklandi`);
-    }
-    // Sahifani yangilash
-    window.location.reload();
-  };
-
-  const handleUpdateUser = (userId: string, updates: any) => {
-    const users = getDemoUsersFromStorage();
-    const updatedUsers = users.map((u: any) => 
-      u.id === userId ? { ...u, ...updates } : u
-    );
-    localStorage.setItem('demo_users', JSON.stringify(updatedUsers));
-    toast.success('Foydalanuvchi ma\'lumotlari yangilandi');
-    window.location.reload();
-  };
-
-  const handleResetPassword = (userId: string) => {
-    const users = getDemoUsersFromStorage();
-    const targetUser = users.find((u: any) => u.id === userId);
-    if (targetUser) {
-      // Demo uchun oddiy parol
-      const newPassword = 'newpass123';
-      const updatedUsers = users.map((u: any) => 
-        u.id === userId ? { ...u, password: newPassword } : u
-      );
-      localStorage.setItem('demo_users', JSON.stringify(updatedUsers));
-      toast.success(`Yangi parol: ${newPassword} (SMS yuborildi)`);
-    }
-  };
-
-  const handleSendMessage = (userId: string, message: string) => {
-    const users = getDemoUsersFromStorage();
-    const targetUser = users.find((u: any) => u.id === userId);
-    if (targetUser) {
-      toast.success(`Xabar yuborildi: ${targetUser.firstName} ga`);
-      console.log('Message sent to:', targetUser.phone, 'Content:', message);
-    }
-  };
-
-  const handleChangeRole = (userId: string, newRole: 'worker' | 'employer') => {
-    const users = getDemoUsersFromStorage();
-    const updatedUsers = users.map((u: any) => 
-      u.id === userId ? { ...u, userType: newRole } : u
-    );
-    localStorage.setItem('demo_users', JSON.stringify(updatedUsers));
-    toast.success(`Rol o'zgartirildi: ${newRole === 'worker' ? 'Ishchi' : 'Ish beruvchi'}`);
-    window.location.reload();
-  };
-
-  const handleDeleteUser = (userId: string) => {
-    const users = getDemoUsersFromStorage();
-    const updatedUsers = users.filter((u: any) => u.id !== userId);
-    localStorage.setItem('demo_users', JSON.stringify(updatedUsers));
-    toast.success(`Foydalanuvchi o'chirildi`);
-    window.location.reload();
-  };
-
-  const handleToggleFeatured = (jobId: string) => {
-    const jobs = getJobsFromStorage();
-    const updatedJobs = jobs.map((j: any) => 
-      j.id === jobId ? { ...j, featured: !j.featured } : j
-    );
-    localStorage.setItem('employer_jobs', JSON.stringify(updatedJobs));
-    toast.success(`VIP status o'zgartirildi!`);
-    window.location.reload();
-  };
-
-  // Ishni tasdiqlash
-  const handleApproveJob = (jobId: string) => {
-    const jobs = getJobsFromStorage();
-    const job = jobs.find((j: any) => j.id === jobId);
-    const updatedJobs = jobs.map((j: any) => 
-      j.id === jobId ? { ...j, approvalStatus: 'approved', status: 'active' } : j
-    );
-    localStorage.setItem('employer_jobs', JSON.stringify(updatedJobs));
-    
-    // Ish beruvchiga xabar berish
-    if (job) {
-      const users = getDemoUsersFromStorage();
-      const employer = users.find((u: any) => `${u.firstName} ${u.lastName}` === job.employerName);
-      if (employer) {
-        const notifications = JSON.parse(localStorage.getItem('employer_notifications') || '[]');
-        notifications.push({
-          id: `notif-${Date.now()}`,
-          userId: employer.id,
-          type: 'job_approved',
-          title: '✅ Ish e\'loni tasdiqlandi!',
-          message: `"${job.title}" e\'loningiz admin tomonidan tasdiqlandi va endi boshqalarga ko'rinadi.`,
-          read: false,
-          createdAt: new Date().toISOString()
-        });
-        localStorage.setItem('employer_notifications', JSON.stringify(notifications));
+  const handleDeleteJob = async (jobId: string) => {
+    try {
+      const response = await apiService.deleteJob(jobId);
+      if (response.success) {
+        toast.success(`Ish o'chirildi!`);
+        await loadData();
+      } else {
+        toast.error(response.error || 'Xatolik');
       }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
     }
-    
-    toast.success(`Ish tasdiqlandi va aktiv holatga o'tkazildi!`);
-    window.location.reload();
   };
 
-  // Ishni rad etish
-  const handleRejectJob = (jobId: string, reason: string) => {
-    const jobs = getJobsFromStorage();
-    const job = jobs.find((j: any) => j.id === jobId);
-    const updatedJobs = jobs.map((j: any) => 
-      j.id === jobId ? { ...j, approvalStatus: 'rejected', rejectionReason: reason } : j
-    );
-    localStorage.setItem('employer_jobs', JSON.stringify(updatedJobs));
-    
-    // Ish beruvchiga xabar berish
-    if (job) {
-      const users = getDemoUsersFromStorage();
-      const employer = users.find((u: any) => `${u.firstName} ${u.lastName}` === job.employerName);
-      if (employer) {
-        const notifications = JSON.parse(localStorage.getItem('employer_notifications') || '[]');
-        notifications.push({
-          id: `notif-${Date.now()}`,
-          userId: employer.id,
-          type: 'job_rejected',
-          title: '❌ Ish e\'loni rad etildi',
-          message: `"${job.title}" e\'loningiz quyidagi sabab bilan rad etildi: ${reason}`,
-          read: false,
-          createdAt: new Date().toISOString()
-        });
-        localStorage.setItem('employer_notifications', JSON.stringify(notifications));
+  const handleBlockUser = async (userId: string) => {
+    try {
+      const targetUser = users.find(u => u.id === userId);
+      const response = await apiService.toggleAdminUserBlock(userId);
+      if (response.success) {
+        toast.success(targetUser?.blocked ? 'Blokdan chiqarildi' : 'Bloklandi');
+        await loadData();
       }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
     }
-    
-    toast.success(`Ish rad etildi!`);
-    window.location.reload();
   };
 
-  const handleApproveApplication = (appId: string) => {
-    const applications = getApplicationsFromStorage();
-    const updatedApps = applications.map((a: any) => 
-      a.id === appId ? { ...a, status: 'accepted' } : a
-    );
-    localStorage.setItem('employer_applications', JSON.stringify(updatedApps));
-    toast.success(`Ariza tasdiqlandi!`);
-    window.location.reload();
+  const handleUpdateUser = async (userId: string, updates: any) => {
+    toast.info('Tahrirlash funksiyasi hali tayyor emas');
   };
 
-  const handleRejectApplication = (appId: string, reason: string) => {
-    const applications = getApplicationsFromStorage();
-    const updatedApps = applications.map((a: any) => 
-      a.id === appId ? { ...a, status: 'rejected', rejectionReason: reason } : a
-    );
-    localStorage.setItem('employer_applications', JSON.stringify(updatedApps));
-    toast.success(`Ariza rad etildi!`);
-    window.location.reload();
+  const handleResetPassword = async (userId: string) => {
+    toast.info('Parol tiklash funksiyasi hali tayyor emas');
+  };
+
+  const handleSendMessage = async (userId: string, message: string) => {
+    toast.success('Xabar yuborildi');
+  };
+
+  const handleChangeRole = async (userId: string, newRole: 'worker' | 'employer') => {
+    toast.info('Rol o\'zgartirish funksiyasi hali tayyor emas');
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const response = await apiService.deleteUser(userId);
+      if (response.success) {
+        toast.success(`Foydalanuvchi o'chirildi`);
+        await loadData();
+      }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
+    }
+  };
+
+  const handleToggleFeatured = async (jobId: string) => {
+    try {
+      const response = await apiService.toggleAdminJobFeatured(jobId);
+      if (response.success) {
+        toast.success(`VIP status o'zgartirildi!`);
+        await loadData();
+      }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
+    }
+  };
+
+  const handleApproveJob = async (jobId: string) => {
+    try {
+      const response = await apiService.approveAdminJob(jobId, false);
+      if (response.success) {
+        toast.success(`Ish tasdiqlandi!`);
+        await loadData();
+      }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
+    }
+  };
+
+  const handleRejectJob = async (jobId: string, reason: string) => {
+    try {
+      const response = await apiService.rejectAdminJob(jobId, reason);
+      if (response.success) {
+        toast.success(`Ish rad etildi!`);
+        await loadData();
+      }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
+    }
+  };
+
+  const handleApproveApplication = async (appId: string) => {
+    try {
+      const response = await apiService.updateApplication(appId, 'accepted');
+      if (response.success) {
+        toast.success(`Ariza tasdiqlandi!`);
+        await loadData();
+      }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
+    }
+  };
+
+  const handleRejectApplication = async (appId: string, reason: string) => {
+    try {
+      const response = await apiService.updateApplication(appId, 'rejected', { rejectionReason: reason });
+      if (response.success) {
+        toast.success(`Ariza rad etildi!`);
+        await loadData();
+      }
+    } catch (error) {
+      toast.error('Xatolik yuz berdi');
+    }
   };
 
   if (!user) return null;
+  if (loading) return <LoadingSpinner />;
 
   return (
     <Suspense fallback={<LoadingSpinner />}>
       <AdminDashboard
         adminName={`${user.firstName} ${user.lastName}`}
-        jobs={getJobsFromStorage()}
-        users={getDemoUsersFromStorage()}
-        applications={getApplicationsFromStorage()}
+        jobs={jobs}
+        users={users}
+        applications={applications}
         onLogout={handleLogout}
         onDeleteJob={handleDeleteJob}
         onBlockUser={handleBlockUser}

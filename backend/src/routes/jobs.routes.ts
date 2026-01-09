@@ -21,9 +21,26 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response) => {
     const offset = (page - 1) * limit;
 
     // Build query
-    let whereConditions = ["j.status = 'active'"];
+    let whereConditions: string[] = [];
+
     const params: any[] = [];
     let paramIndex = 1;
+
+    // Visibility rules:
+    // - Anonymous/worker: only active
+    // - Employer: active jobs + their own jobs (any status)
+    // - Admin: all
+    if (!req.user) {
+      whereConditions.push("j.status = 'active'");
+    } else if (req.user.userType === 'admin') {
+      // no status filter
+    } else if (req.user.userType === 'employer') {
+      whereConditions.push(`(j.status = 'active' OR j.employer_id = $${paramIndex})`);
+      params.push(req.user.id);
+      paramIndex++;
+    } else {
+      whereConditions.push("j.status = 'active'");
+    }
 
     if (q) {
       whereConditions.push(`(j.title ILIKE $${paramIndex} OR j.description ILIKE $${paramIndex})`);
@@ -79,7 +96,8 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response) => {
     const jobsResult = await query(
       `SELECT j.*, c.name as category_name, c.icon as category_icon,
               u.first_name as employer_first_name, u.last_name as employer_last_name,
-              u.company_name as employer_company, u.avatar_url as employer_avatar
+              u.company_name as employer_company, u.avatar_url as employer_avatar,
+              u.phone as employer_phone, u.region as employer_region
        FROM jobs j
        LEFT JOIN categories c ON j.category_id = c.id
        LEFT JOIN users u ON j.employer_id = u.id
@@ -106,6 +124,8 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response) => {
       benefits: job.benefits || [],
       isFeatured: job.is_featured,
       isUrgent: job.is_urgent,
+      status: job.status,
+      rejectionReason: job.rejection_reason,
       viewsCount: job.views_count,
       applicationsCount: job.applications_count,
       deadline: job.deadline,
@@ -115,7 +135,9 @@ router.get('/', optionalAuth, async (req: AuthRequest, res: Response) => {
         firstName: job.employer_first_name,
         lastName: job.employer_last_name,
         companyName: job.employer_company,
-        avatarUrl: job.employer_avatar
+        avatarUrl: job.employer_avatar,
+        phone: job.employer_phone,
+        region: job.employer_region
       }
     }));
 
@@ -289,11 +311,19 @@ router.post('/', authenticate, requireRole('employer', 'admin'), async (req: Aut
     const data = validation.data;
     const employerId = req.user!.id;
 
-    // Get category ID if name provided
-    let categoryId = data.categoryId;
-    if (!categoryId && data.categoryId) {
-      const catResult = await query('SELECT id FROM categories WHERE name = $1', [data.categoryId]);
-      categoryId = catResult.rows[0]?.id;
+    // Resolve category: accept UUID directly, otherwise try lookup by name/value.
+    let categoryId: string | undefined = undefined;
+    if (data.categoryId) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.categoryId);
+      if (isUuid) {
+        categoryId = data.categoryId;
+      } else {
+        const catResult = await query(
+          'SELECT id FROM categories WHERE name = $1 OR name ILIKE $2 LIMIT 1',
+          [data.categoryId, `%${data.categoryId}%`]
+        );
+        categoryId = catResult.rows[0]?.id;
+      }
     }
 
     const result = await query(
@@ -362,6 +392,40 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     }
 
     const updates = validation.data;
+
+    // Prevent employers from bypassing moderation via status changes
+    if (updates.status !== undefined) {
+      const currentStatus: string = jobCheck.rows[0].status;
+      const requestedStatus: string = updates.status as any;
+
+      if (req.user!.userType !== 'admin') {
+        // While pending/rejected, only admin can change status
+        if (currentStatus === 'pending' || currentStatus === 'rejected') {
+          res.status(400).json({
+            success: false,
+            error: 'Ish moderatsiyada. Holatini faqat admin o\'zgartira oladi'
+          });
+          return;
+        }
+
+        // Employers can only toggle between active <-> paused and close (closed)
+        if (!['active', 'paused', 'closed'].includes(requestedStatus)) {
+          res.status(400).json({ success: false, error: 'Noto\'g\'ri status qiymati' });
+          return;
+        }
+
+        const allowedTransitions: Record<string, string[]> = {
+          active: ['paused', 'closed'],
+          paused: ['active', 'closed']
+        };
+
+        const allowedNext = allowedTransitions[currentStatus] || [];
+        if (requestedStatus !== currentStatus && !allowedNext.includes(requestedStatus)) {
+          res.status(400).json({ success: false, error: 'Status o\'zgarishi ruxsat etilmagan' });
+          return;
+        }
+      }
+    }
     
     // Build update query
     const setClauses: string[] = [];
@@ -386,7 +450,8 @@ router.put('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       contactPhone: 'contact_phone',
       contactEmail: 'contact_email',
       isUrgent: 'is_urgent',
-      deadline: 'deadline'
+      deadline: 'deadline',
+      status: 'status'
     };
 
     for (const [key, value] of Object.entries(updates)) {

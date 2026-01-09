@@ -1,15 +1,9 @@
 import { sanitizeObject } from './sanitize';
 
-// Backend API URL - production yoki development
-const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Backend API URL - production server
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://77.237.239.235/api';
 
-// Demo mode - backend bo'lmasa local storage ishlatish
-// Backend ishga tushganda false qiling
-const DEMO_MODE = false;
-const DEMO_USERS_KEY = 'demo_users';
-const DEMO_CURRENT_USER_KEY = 'demo_current_user';
-
-// Token storage keys (using sessionStorage for better security)
+// Token storage keys
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 
@@ -17,82 +11,8 @@ interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
-}
-
-interface DemoUser {
-  id: string;
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  region: string;
-  userType: 'worker' | 'employer' | 'admin';
-  phone: string;
-  isAdmin?: boolean;
-  createdAt: string;
-}
-
-// Demo helper functions
-function getDemoUsers(): DemoUser[] {
-  const stored = localStorage.getItem(DEMO_USERS_KEY);
-  
-  // Versiya tekshiruvi - yangi admin qo'shilgan bo'lsa yangilash
-  const DEMO_VERSION = '5.0'; // Demo users yangilandi
-  const storedVersion = localStorage.getItem('demo_version');
-  
-  if (stored && storedVersion === DEMO_VERSION) {
-    return JSON.parse(stored);
-  }
-  
-  // Dastlabki demo foydalanuvchilarni yaratish
-  const defaultUsers: DemoUser[] = [
-    {
-      id: 'admin-001',
-      email: 'admin@vakans.uz',
-      password: 'XOJISAID.13.13',
-      firstName: 'XOJISAID',
-      lastName: 'Admin',
-      region: 'Toshkent shahri',
-      userType: 'admin',
-      isAdmin: true,
-      phone: '+998996983806',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 'worker-001',
-      email: '998907654321@vakans.uz',
-      password: 'worker123',
-      firstName: 'Aziz',
-      lastName: 'Toshmatov',
-      region: 'Samarqand viloyati',
-      userType: 'worker',
-      phone: '+998907654321',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 'employer-001',
-      email: '998901234567@vakans.uz',
-      password: 'employer123',
-      firstName: 'Sardor',
-      lastName: 'Karimov',
-      region: 'Toshkent shahri',
-      userType: 'employer',
-      phone: '+998901234567',
-      createdAt: new Date().toISOString(),
-    },
-  ];
-  
-  localStorage.setItem('demo_version', DEMO_VERSION);
-  saveDemoUsers(defaultUsers);
-  return defaultUsers;
-}
-
-function saveDemoUsers(users: DemoUser[]): void {
-  localStorage.setItem(DEMO_USERS_KEY, JSON.stringify(users));
-}
-
-function generateId(): string {
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  message?: string;
+  details?: any;
 }
 
 class ApiService {
@@ -158,8 +78,11 @@ class ApiService {
 
       const data = await response.json();
 
-      if (data.success && data.accessToken && data.refreshToken) {
-        this.setTokens(data.accessToken, data.refreshToken);
+      const accessToken = data?.data?.accessToken ?? data?.accessToken;
+      const refreshToken = data?.data?.refreshToken ?? data?.refreshToken;
+
+      if (data?.success && accessToken && refreshToken) {
+        this.setTokens(accessToken, refreshToken);
         return true;
       }
 
@@ -218,12 +141,20 @@ class ApiService {
         }
       }
 
-      const data = await response.json();
+      let data: any;
+      try {
+        data = await response.json();
+      } catch {
+        const text = await response.text().catch(() => '');
+        data = { success: false, error: text || 'Xatolik yuz berdi' };
+      }
 
       if (!response.ok) {
         return {
           success: false,
-          error: data.error || 'Xatolik yuz berdi',
+          error: data?.error || 'Xatolik yuz berdi',
+          message: data?.message,
+          details: data?.details,
         };
       }
 
@@ -257,52 +188,6 @@ class ApiService {
     userType: 'worker' | 'employer' | 'admin';
     phone: string;
   }): Promise<ApiResponse> {
-    // Demo mode - local storage da saqlash
-    if (DEMO_MODE) {
-      const users = getDemoUsers();
-      
-      // Telefon raqam mavjudligini tekshirish
-      if (users.find(u => u.phone === userData.phone)) {
-        return {
-          success: false,
-          error: 'Bu telefon raqam allaqachon ro\'yxatdan o\'tgan',
-        };
-      }
-
-      const newUser: DemoUser = {
-        id: generateId(),
-        email: userData.email,
-        password: userData.password, // Real loyihada hash qilish kerak!
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        region: userData.region,
-        userType: userData.userType,
-        phone: userData.phone,
-        createdAt: new Date().toISOString(),
-      };
-
-      users.push(newUser);
-      saveDemoUsers(users);
-
-      // Token yaratish
-      const token = generateId();
-      this.setTokens(token, token);
-
-      // Current user saqlash
-      const { password: _, ...userProfile } = newUser;
-      localStorage.setItem(DEMO_CURRENT_USER_KEY, JSON.stringify(userProfile));
-
-      return {
-        success: true,
-        data: {
-          user: userProfile,
-          accessToken: token,
-          refreshToken: token,
-        },
-      };
-    }
-
-    // Real API
     const sanitizedData = sanitizeObject(userData);
 
     const response = await this.request('/auth/register', {
@@ -322,39 +207,6 @@ class ApiService {
    * Login user
    */
   async login(phone: string, password: string): Promise<ApiResponse> {
-    // Demo mode
-    if (DEMO_MODE) {
-      const users = getDemoUsers();
-      
-      // Email yoki telefon bilan qidirish
-      const user = users.find(u => 
-        (u.email === phone || u.phone === phone) && u.password === password
-      );
-
-      if (!user) {
-        return {
-          success: false,
-          error: 'Telefon raqam yoki parol noto\'g\'ri',
-        };
-      }
-
-      const token = generateId();
-      this.setTokens(token, token);
-
-      const { password: _, ...userProfile } = user;
-      localStorage.setItem(DEMO_CURRENT_USER_KEY, JSON.stringify(userProfile));
-
-      return {
-        success: true,
-        data: {
-          user: userProfile,
-          accessToken: token,
-          refreshToken: token,
-        },
-      };
-    }
-
-    // Real API
     const response = await this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ phone, password }),
@@ -372,13 +224,6 @@ class ApiService {
    * Logout user
    */
   async logout(deviceId?: string): Promise<ApiResponse> {
-    // Demo mode
-    if (DEMO_MODE) {
-      this.clearTokens();
-      localStorage.removeItem(DEMO_CURRENT_USER_KEY);
-      return { success: true };
-    }
-
     const response = await this.request('/auth/logout', {
       method: 'POST',
       body: JSON.stringify({ deviceId }),
@@ -394,18 +239,6 @@ class ApiService {
    * Get current user profile
    */
   async getProfile(): Promise<ApiResponse> {
-    // Demo mode
-    if (DEMO_MODE) {
-      const stored = localStorage.getItem(DEMO_CURRENT_USER_KEY);
-      if (stored) {
-        return {
-          success: true,
-          data: { profile: JSON.parse(stored) },
-        };
-      }
-      return { success: false, error: 'Foydalanuvchi topilmadi' };
-    }
-
     return await this.request('/users/profile', {
       method: 'GET',
     });
@@ -422,25 +255,6 @@ class ApiService {
   }): Promise<ApiResponse> {
     const sanitizedUpdates = sanitizeObject(updates);
 
-    // Demo mode
-    if (DEMO_MODE) {
-      const users = getDemoUsers();
-      const currentUser = localStorage.getItem(DEMO_CURRENT_USER_KEY);
-      if (!currentUser) return { success: false, error: 'Foydalanuvchi topilmadi' };
-      
-      const userData = JSON.parse(currentUser);
-      const updatedUser = { ...userData, ...sanitizedUpdates };
-      
-      // Update in users array
-      const updatedUsers = users.map(u => u.id === userData.id ? { ...u, ...sanitizedUpdates } : u);
-      saveDemoUsers(updatedUsers);
-      
-      // Update current user
-      localStorage.setItem(DEMO_CURRENT_USER_KEY, JSON.stringify(updatedUser));
-      
-      return { success: true, data: { profile: updatedUser } };
-    }
-
     return await this.request('/users/profile', {
       method: 'PUT',
       body: JSON.stringify(sanitizedUpdates),
@@ -451,21 +265,6 @@ class ApiService {
    * Delete user account
    */
   async deleteAccount(): Promise<ApiResponse> {
-    if (DEMO_MODE) {
-      const currentUser = localStorage.getItem(DEMO_CURRENT_USER_KEY);
-      if (!currentUser) return { success: false, error: 'Foydalanuvchi topilmadi' };
-      
-      const userData = JSON.parse(currentUser);
-      const users = getDemoUsers();
-      const updatedUsers = users.filter(u => u.id !== userData.id);
-      saveDemoUsers(updatedUsers);
-      
-      this.clearTokens();
-      localStorage.removeItem(DEMO_CURRENT_USER_KEY);
-      
-      return { success: true };
-    }
-
     return await this.request('/users/account', {
       method: 'DELETE',
     });
@@ -499,16 +298,39 @@ class ApiService {
   async postJob(jobData: {
     title: string;
     description: string;
-    salary?: number;
-    location: string;
-    category: string;
+    categoryId?: string;
+    salaryMin?: number | null;
+    salaryMax?: number | null;
+    salaryType?: string;
+    currency?: string;
+    location?: string;
+    region?: string;
+    address?: string | null;
+    workType?: string;
+    experienceRequired?: string | null;
+    educationRequired?: string | null;
+    languagesRequired?: string[];
     requirements?: string[];
+    benefits?: string[];
+    contactPhone?: string;
+    contactEmail?: string | null;
+    isUrgent?: boolean;
+    deadline?: string | null;
   }): Promise<ApiResponse> {
     const sanitizedData = sanitizeObject(jobData);
 
     return await this.request('/jobs', {
       method: 'POST',
       body: JSON.stringify(sanitizedData),
+    });
+  }
+
+  /**
+   * Get current employer's posted jobs
+   */
+  async getMyPostedJobs(): Promise<ApiResponse> {
+    return await this.request('/jobs/my/posted', {
+      method: 'GET',
     });
   }
 
@@ -538,6 +360,15 @@ class ApiService {
     });
   }
 
+  /**
+   * Get all categories
+   */
+  async getCategories(): Promise<ApiResponse> {
+    return await this.request('/categories', {
+      method: 'GET',
+    });
+  }
+
   // ===========================
   // APPLICATION ENDPOINTS
   // ===========================
@@ -557,17 +388,22 @@ class ApiService {
   async applyToJob(jobId: string, message?: string): Promise<ApiResponse> {
     return await this.request('/applications', {
       method: 'POST',
-      body: JSON.stringify({ jobId, message }),
+      // Backend expects `coverLetter`
+      body: JSON.stringify({ jobId, coverLetter: message }),
     });
   }
 
   /**
    * Update application status
    */
-  async updateApplication(applicationId: string, status: 'accepted' | 'rejected'): Promise<ApiResponse> {
+  async updateApplication(
+    applicationId: string,
+    status: 'accepted' | 'rejected' | 'withdrawn' | 'viewed',
+    options?: { employerNotes?: string; rejectionReason?: string }
+  ): Promise<ApiResponse> {
     return await this.request(`/applications/${applicationId}`, {
       method: 'PUT',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, ...options }),
     });
   }
 
@@ -588,10 +424,6 @@ class ApiService {
    * Get all users (admin only)
    */
   async getAllUsers(): Promise<ApiResponse> {
-    if (DEMO_MODE) {
-      const users = getDemoUsers();
-      return { success: true, data: { users: users.map(({ password, ...u }) => u) } };
-    }
     return await this.request('/admin/users', { method: 'GET' });
   }
 
@@ -599,12 +431,6 @@ class ApiService {
    * Delete user (admin only)
    */
   async deleteUser(userId: string): Promise<ApiResponse> {
-    if (DEMO_MODE) {
-      const users = getDemoUsers();
-      const updatedUsers = users.filter(u => u.id !== userId);
-      saveDemoUsers(updatedUsers);
-      return { success: true };
-    }
     return await this.request(`/admin/users/${userId}`, { method: 'DELETE' });
   }
 
@@ -612,16 +438,61 @@ class ApiService {
    * Update user (admin only)
    */
   async updateUser(userId: string, updates: any): Promise<ApiResponse> {
-    if (DEMO_MODE) {
-      const users = getDemoUsers();
-      const updatedUsers = users.map(u => u.id === userId ? { ...u, ...updates } : u);
-      saveDemoUsers(updatedUsers);
-      return { success: true };
-    }
     return await this.request(`/admin/users/${userId}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     });
+  }
+
+  // ===========================
+  // ADMIN EXTRA ENDPOINTS
+  // ===========================
+
+  async getAdminStats(): Promise<ApiResponse> {
+    return await this.request('/admin/stats', { method: 'GET' });
+  }
+
+  async getAdminJobs(params?: { page?: number; limit?: number; status?: string }): Promise<ApiResponse> {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.limit) qs.set('limit', String(params.limit));
+    if (params?.status) qs.set('status', params.status);
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return await this.request(`/admin/jobs${suffix}`, { method: 'GET' });
+  }
+
+  async approveAdminJob(jobId: string, featured?: boolean): Promise<ApiResponse> {
+    return await this.request(`/admin/jobs/${jobId}/approve`, {
+      method: 'PUT',
+      body: JSON.stringify({ featured: !!featured }),
+    });
+  }
+
+  async rejectAdminJob(jobId: string, reason: string): Promise<ApiResponse> {
+    return await this.request(`/admin/jobs/${jobId}/reject`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  async toggleAdminJobFeatured(jobId: string): Promise<ApiResponse> {
+    return await this.request(`/admin/jobs/${jobId}/feature`, {
+      method: 'PUT',
+    });
+  }
+
+  async toggleAdminUserBlock(userId: string): Promise<ApiResponse> {
+    return await this.request(`/admin/users/${userId}/block`, {
+      method: 'PUT',
+    });
+  }
+
+  async getAdminApplications(params?: { page?: number; limit?: number }): Promise<ApiResponse> {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.limit) qs.set('limit', String(params.limit));
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return await this.request(`/admin/applications${suffix}`, { method: 'GET' });
   }
 }
 

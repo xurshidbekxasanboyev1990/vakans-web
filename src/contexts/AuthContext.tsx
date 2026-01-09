@@ -38,66 +38,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Fetch user profile on mount if token exists
   useEffect(() => {
     const initAuth = async () => {
-      // First check localStorage for cached user
-      const cachedUser = localStorage.getItem('currentUser');
-      if (cachedUser) {
-        try {
-          const parsedUser = JSON.parse(cachedUser);
-          // Validate user object has required fields
-          if (parsedUser && parsedUser.id && parsedUser.userType && 
-              (parsedUser.firstName || parsedUser.first_name)) {
-            // Normalize field names (convert snake_case to camelCase if needed)
-            const normalizedUser = {
-              id: parsedUser.id,
-              firstName: parsedUser.firstName || parsedUser.first_name,
-              lastName: parsedUser.lastName || parsedUser.last_name,
-              userType: parsedUser.userType || parsedUser.user_type,
-              phone: parsedUser.phone,
-              email: parsedUser.email,
-              region: parsedUser.region,
-              isAdmin: parsedUser.isAdmin || parsedUser.is_admin
-            };
-            setUser(normalizedUser);
-            localStorage.setItem('currentUser', JSON.stringify(normalizedUser));
-            setLoading(false);
-            
-            // If we have a cached user, optionally validate token in background
-            // but don't clear user if it fails (offline support)
-            if (apiService.isAuthenticated()) {
-              apiService.getProfile().then(response => {
-                if (response.success && response.data?.profile) {
-                  setUser(response.data.profile);
-                  localStorage.setItem('currentUser', JSON.stringify(response.data.profile));
-                }
-              }).catch(() => {
-                // Silently fail - keep using cached user
-              });
-            }
-            return;
-          } else {
-            // Invalid user format, clear it
-            localStorage.removeItem('currentUser');
-          }
-        } catch (e) {
-          localStorage.removeItem('currentUser');
-        }
-      }
-
-      // No cached user, try to fetch from API
+      // Try to fetch from API if authenticated
       if (apiService.isAuthenticated()) {
         try {
           const response = await apiService.getProfile();
           if (response.success && response.data?.profile) {
-            setUser(response.data.profile);
-            localStorage.setItem('currentUser', JSON.stringify(response.data.profile));
+            const userData = response.data.profile;
+            // Normalize field names
+            const normalizedUser = {
+              id: userData.id,
+              firstName: userData.firstName || userData.first_name,
+              lastName: userData.lastName || userData.last_name,
+              userType: userData.userType || userData.user_type,
+              phone: userData.phone,
+              email: userData.email,
+              region: userData.region,
+              isAdmin: userData.isAdmin || userData.is_admin
+            };
+            setUser(normalizedUser);
           } else {
             // Token invalid, clear it
             apiService.clearTokens();
-            localStorage.removeItem('currentUser');
           }
         } catch (error) {
           apiService.clearTokens();
-          localStorage.removeItem('currentUser');
         }
       }
       setLoading(false);
@@ -186,15 +150,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.data?.user) {
         const userData = response.data.user;
-        setUser(userData);
-        localStorage.setItem('currentUser', JSON.stringify(userData));
+        // Normalize field names
+        const normalizedUser = {
+          id: userData.id,
+          firstName: userData.firstName || userData.first_name,
+          lastName: userData.lastName || userData.last_name,
+          userType: userData.userType || userData.user_type,
+          phone: userData.phone,
+          email: userData.email,
+          region: userData.region,
+          isAdmin: userData.isAdmin || userData.is_admin
+        };
+        setUser(normalizedUser);
         // Store deviceId for multi-device support
         if (response.data.deviceId) {
           sessionStorage.setItem('deviceId', response.data.deviceId);
         }
         toast.success('Xush kelibsiz!');
         setLoading(false);
-        return { error: null, user: userData };
+        return { error: null, user: normalizedUser };
       } else {
         setLoading(false);
         return { error: new Error('No user data in response') };
@@ -214,7 +188,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const deviceId = sessionStorage.getItem('deviceId');
       await apiService.logout(deviceId || undefined);
       setUser(null);
-      localStorage.removeItem('currentUser');
       // Remove deviceId from storage
       sessionStorage.removeItem('deviceId');
       toast.info('Tizimdan chiqdingiz');
@@ -223,7 +196,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast.error('Xatolik yuz berdi');
       // Clear user anyway
       setUser(null);
-      localStorage.removeItem('currentUser');
     } finally {
       setLoading(false);
     }

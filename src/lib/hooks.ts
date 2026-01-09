@@ -44,15 +44,14 @@ export function useJobs(filters?: JobFilters) {
     queryKey: ['jobs', filters],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (filters?.search) params.append('search', filters.search);
+      if (filters?.search) params.append('q', filters.search);
       if (filters?.region) params.append('region', filters.region);
       if (filters?.category) params.append('category', filters.category);
-      if (filters?.employmentType) params.append('employmentType', filters.employmentType);
-      if (filters?.status) params.append('status', filters.status);
+      if (filters?.employmentType) params.append('workType', filters.employmentType);
       if (filters?.page) params.append('page', String(filters.page));
       if (filters?.limit) params.append('limit', String(filters.limit));
 
-      const response = await apiService.request<{ jobs: Job[]; total: number }>(
+      const response = await apiService.request<{ jobs: Job[]; pagination: any }>(
         `/jobs?${params.toString()}`
       );
       
@@ -73,13 +72,13 @@ export function useJob(jobId: string) {
   return useQuery({
     queryKey: ['job', jobId],
     queryFn: async () => {
-      const response = await apiService.request<{ job: Job }>(`/jobs/${jobId}`);
+      const response = await apiService.request<Job>(`/jobs/${jobId}`);
       
       if (!response.success) {
         throw new Error(response.error || 'Ishni yuklashda xatolik');
       }
       
-      return response.data?.job;
+      return response.data;
     },
     enabled: !!jobId,
   });
@@ -180,9 +179,9 @@ export function useApplyToJob() {
 
   return useMutation({
     mutationFn: async ({ jobId, message }: { jobId: string; message?: string }) => {
-      const response = await apiService.request(`/jobs/${jobId}/apply`, {
+      const response = await apiService.request('/applications', {
         method: 'POST',
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ jobId, coverLetter: message }),
       });
       
       if (!response.success) {
@@ -224,14 +223,14 @@ export function useApplications(jobId?: string) {
   return useQuery({
     queryKey: ['applications', jobId],
     queryFn: async () => {
-      const url = jobId ? `/applications?jobId=${jobId}` : '/applications';
-      const response = await apiService.request<{ applications: Application[] }>(url);
+      const url = jobId ? `/applications/job/${jobId}` : '/applications';
+      const response = await apiService.request<Application[]>(url);
       
       if (!response.success) {
         throw new Error(response.error || 'Arizalarni yuklashda xatolik');
       }
       
-      return response.data?.applications || [];
+      return response.data || [];
     },
   });
 }

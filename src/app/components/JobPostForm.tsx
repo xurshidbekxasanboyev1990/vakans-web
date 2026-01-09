@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Checkbox } from './ui/checkbox';
 import { Upload } from 'lucide-react';
 import { JOB_CATEGORIES } from '../../lib/constants';
+import { toast } from 'sonner';
 
 export type JobStatus = 'active' | 'paused' | 'completed' | 'cancelled';
 export type DurationType = '1-day' | 'few-days' | 'week' | 'month' | 'ongoing';
@@ -102,40 +103,51 @@ export function JobPostForm({ employerName, employerRegion, onPostJob }: JobPost
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', { title, description, startDate });
     
-    if (!title || !description || !startDate) {
-      console.error('Validation failed:', { title: !!title, description: !!description, startDate: !!startDate });
+    if (!title.trim()) {
+      toast.error('Ish nomini kiriting!');
       return;
     }
     
-    if (title && description && startDate) {
-      onPostJob({
-        title,
-        description,
-        category: category || undefined,
-        startDate,
-        endDate: endDate || undefined,
-        durationType,
-        imageUrl: imageUrl || undefined,
-        salary: salary && paymentType !== 'negotiable' ? parseFloat(salary) : undefined,
-        paymentType: paymentType,
-        genderPreference: genderPreference,
-        employerTelegram: telegram || undefined,
-      });
-      // Reset form
-      setTitle('');
-      setDescription('');
-      setCategory('');
-      setStartDate('');
-      setEndDate('');
-      setDurationType('few-days');
-      setImageUrl('');
-      setSalary('');
-      setPaymentType('negotiable');
-      setTelegram('');
-      setGenderPreference('both');
+    if (!description.trim()) {
+      toast.error('Tavsifni kiriting!');
+      return;
     }
+    
+    if (!startDate) {
+      toast.error('Boshlanish sanasini tanlang!');
+      return;
+    }
+    
+    // ODDIY OBJECT - hech qanday murakkablik yo'q
+    const jobData = {
+      title,
+      description,
+      category,
+      startDate,
+      endDate,
+      durationType,
+      imageUrl,
+      salary: salary ? parseFloat(salary) : undefined,
+      paymentType,
+      genderPreference,
+      employerTelegram: telegram,
+      deadline: endDate,
+      isUrgent: false
+    };
+    
+    // Call parent
+    onPostJob(jobData);
+    
+    // Reset
+    setTitle('');
+    setDescription('');
+    setCategory('');
+    setStartDate('');
+    setEndDate('');
+    setSalary('');
+    setImageUrl('');
+    setTelegram('');
   };
 
   return (

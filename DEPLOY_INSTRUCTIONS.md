@@ -4,6 +4,27 @@ Server IP: **77.237.239.235**
 
 ## 📋 Step-by-Step Deployment
 
+## ✅ Tezkor: lokal `dist` ni serverga yuborish (tavsiya)
+
+1) Lokal build:
+```powershell
+cd C:\Users\user\Desktop\Works-main
+npm run build
+```
+
+2) `dist/` ni server web-root’ga yuborish:
+```powershell
+# Default: /www/wwwroot/77.237.239.235
+./tools/deploy-dist.ps1 -ServerHost 77.237.239.235 -User root -RemotePath "/www/wwwroot/77.237.239.235" -Backup -ReloadNginx
+
+# Agar aaPanel websiteningiz root’i /www/wwwroot/vakans-web/dist bo'lsa:
+./tools/deploy-dist.ps1 -ServerHost 77.237.239.235 -User root -RemotePath "/www/wwwroot/vakans-web/dist" -Backup -ReloadNginx
+```
+
+3) Brauzerda eski build qolsa (PWA / service worker cache):
+- Chrome DevTools → Application → Service Workers → **Unregister**
+- Application → Storage → **Clear site data**
+
 ### 1️⃣ Serverga fayllarni yuklash
 
 Loyihangiz allaqachon `/www/wwwroot/vakans-web` da bo'lishi kerak.
@@ -95,6 +116,15 @@ aaPanel web interface'ga kiring: `http://77.237.239.235:7800`
 ```nginx
 location / {
     try_files $uri $uri/ /index.html;
+}
+
+# Yangi build chiqganda eski index/sw.js cache bo'lib qolmasin
+location = /index.html {
+   add_header Cache-Control "no-cache";
+}
+
+location = /sw.js {
+   add_header Cache-Control "no-cache";
 }
 ```
 

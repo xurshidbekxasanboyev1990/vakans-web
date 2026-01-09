@@ -1,11 +1,10 @@
-const CACHE_NAME = 'vakans-uz-v2';
+const CACHE_NAME = 'vakans-uz-v4';
 const OFFLINE_URL = '/offline.html';
 
 // Resources to cache
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
+  '/offline.html',
 ];
 
 // Install event - cache static assets
@@ -59,6 +58,11 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(request)
       .then((response) => {
+        // Never cache navigation or index.html (avoid pinning old builds)
+        if (request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html') {
+          return response;
+        }
+
         // Don't cache non-successful responses
         if (!response || response.status !== 200) {
           return response;

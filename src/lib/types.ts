@@ -37,16 +37,15 @@ export interface UserProfile extends User {
 // JOB TYPES
 // ===========================
 
-export type JobStatus = 'active' | 'paused' | 'closed' | 'draft' | 'pending' | 'approved' | 'rejected';
+export type JobStatus = 'active' | 'paused' | 'closed' | 'expired' | 'draft' | 'pending' | 'approved' | 'rejected';
 
 export type PaymentStatus = 'free' | 'pending' | 'paid';
 
 export type EmploymentType = 
   | 'full-time' 
   | 'part-time' 
+  | 'remote'
   | 'contract' 
-  | 'freelance' 
-  | 'internship'
   | 'temporary';
 
 export type SalaryType = 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'negotiable';

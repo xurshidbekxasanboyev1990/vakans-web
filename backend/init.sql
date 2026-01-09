@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     contact_email VARCHAR(255),
     is_featured BOOLEAN DEFAULT FALSE,
     is_urgent BOOLEAN DEFAULT FALSE,
-    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'rejected', 'closed', 'expired')),
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'paused', 'rejected', 'closed', 'expired')),
     views_count INTEGER DEFAULT 0,
     applications_count INTEGER DEFAULT 0,
     deadline DATE,

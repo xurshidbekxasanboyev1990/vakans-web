@@ -55,7 +55,7 @@ export function ReportsLogs({ jobs, users, applications = [] }: ReportsLogsProps
   const filteredApplications = getFilteredData(applications);
   const workerCount = filteredUsers.filter(u => u.userType === 'worker').length;
   const employerCount = filteredUsers.filter(u => u.userType === 'employer').length;
-  const activeJobsCount = filteredJobs.filter(j => j.status === 'active').length;
+  const activeJobsCount = filteredJobs.filter(j => j.status === 'active' || j.status === 'paused').length;
   const pendingApps = filteredApplications.filter(a => a.status === 'pending').length;
   const acceptedApps = filteredApplications.filter(a => a.status === 'accepted').length;
 

@@ -19,7 +19,7 @@ export interface Job {
   region: string;
   createdAt: string;
   category?: string;
-  workType?: 'full-time' | 'part-time' | 'contract' | 'freelance';
+  workType?: 'full-time' | 'part-time' | 'remote' | 'contract' | 'temporary';
   experience?: string;
 }
 
@@ -30,7 +30,7 @@ export interface CreateJobRequest {
   salary: string;
   region: string;
   category?: string;
-  workType?: 'full-time' | 'part-time' | 'contract' | 'freelance';
+  workType?: 'full-time' | 'part-time' | 'remote' | 'contract' | 'temporary';
   experience?: string;
 }
 
@@ -65,7 +65,7 @@ export class JobsService {
       
       if (filters?.region) queryParams.append('region', filters.region);
       if (filters?.category) queryParams.append('category', filters.category);
-      if (filters?.search) queryParams.append('search', filters.search);
+      if (filters?.search) queryParams.append('q', filters.search);
 
       const query = queryParams.toString();
       const endpoint = query ? `/jobs?${query}` : '/jobs';
@@ -104,7 +104,7 @@ export class JobsService {
         method: 'GET',
       });
 
-      if (!response.success || !response.data?.job) {
+      if (!response.success || !response.data) {
         return {
           success: false,
           error: response.error || 'Job not found',
@@ -113,7 +113,7 @@ export class JobsService {
 
       return {
         success: true,
-        data: response.data.job,
+        data: response.data,
       };
     } catch (error) {
       console.error('Get job error:', error);
@@ -146,7 +146,7 @@ export class JobsService {
         body: JSON.stringify(sanitized),
       });
 
-      if (!response.success || !response.data?.job) {
+      if (!response.success || !response.data) {
         return {
           success: false,
           error: response.error || 'Failed to create job',
@@ -155,7 +155,7 @@ export class JobsService {
 
       return {
         success: true,
-        data: response.data.job,
+        data: response.data,
       };
     } catch (error) {
       console.error('Create job error:', error);
@@ -187,7 +187,7 @@ export class JobsService {
         body: JSON.stringify(sanitized),
       });
 
-      if (!response.success || !response.data?.job) {
+      if (!response.success || !response.data) {
         return {
           success: false,
           error: response.error || 'Failed to update job',
@@ -196,7 +196,7 @@ export class JobsService {
 
       return {
         success: true,
-        data: response.data.job,
+        data: response.data,
       };
     } catch (error) {
       console.error('Update job error:', error);
@@ -235,7 +235,7 @@ export class JobsService {
    */
   async getMyJobs(): Promise<JobsResponse> {
     try {
-      const response = await apiService.request('/jobs/my-jobs', {
+      const response = await apiService.request('/jobs/my/posted', {
         method: 'GET',
       });
 
@@ -248,7 +248,7 @@ export class JobsService {
 
       return {
         success: true,
-        data: response.data?.jobs || [],
+        data: response.data || [],
       };
     } catch (error) {
       console.error('Get my jobs error:', error);
@@ -271,9 +271,9 @@ export class JobsService {
     try {
       const sanitized = sanitizeObject({ coverLetter });
 
-      const response = await apiService.request(`/jobs/${jobId}/apply`, {
+      const response = await apiService.request('/applications', {
         method: 'POST',
-        body: JSON.stringify(sanitized),
+        body: JSON.stringify({ jobId, ...sanitized }),
       });
 
       return {

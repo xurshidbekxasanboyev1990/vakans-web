@@ -63,9 +63,9 @@ export const jobSchema = z.object({
   employmentType: z.enum([
     "full-time",
     "part-time",
+    "remote",
     "contract",
-    "freelance",
-    "internship"
+    "temporary"
   ]).optional(),
 });
 

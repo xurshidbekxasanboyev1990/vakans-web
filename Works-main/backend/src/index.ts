@@ -32,6 +32,7 @@ import adminRoutes from './routes/admin.routes';
 import notificationsRoutes from './routes/notifications.routes';
 import smsRoutes from './routes/sms.routes';
 import chatRoutes from './routes/chat.routes';
+import i18nRoutes from './routes/i18n.routes';
 import { getCsrfToken } from './middleware/csrf';
 
 const app = express();
@@ -133,6 +134,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/sms', smsRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/i18n', i18nRoutes);
 
 // CSRF token endpoint
 app.get('/api/csrf-token', getCsrfToken);

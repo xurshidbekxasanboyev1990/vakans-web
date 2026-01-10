@@ -3,6 +3,7 @@ import { Server, Socket } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { query } from '../config/database';
 import { logger } from '../utils/logger';
+import { getJwtSecret } from '../middleware/auth';
 
 // ============================================
 // TYPES
@@ -49,7 +50,7 @@ export function setupSocketServer(httpServer: HttpServer): Server {
         return next(new Error('Authentication required'));
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string; userType: string };
+      const decoded = jwt.verify(token, getJwtSecret()) as { userId: string; userType: string };
       
       // Get user info
       const result = await query(

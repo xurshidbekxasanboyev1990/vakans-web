@@ -13,7 +13,7 @@ export interface AuthRequest extends Request {
 }
 
 // JWT secret - must be set in environment
-function getJwtSecret(): string {
+export function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     console.error('❌ JWT_SECRET environment variable is required');

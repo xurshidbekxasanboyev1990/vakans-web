@@ -29,8 +29,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "127.0.0.1:5432:5432"
+    # Port expose qilinmaydi - faqat internal Docker network
     networks:
       - vakans_network
     healthcheck:
@@ -47,8 +46,7 @@ services:
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     volumes:
       - redis_data:/data
-    ports:
-      - "127.0.0.1:6379:6379"
+    # Port expose qilinmaydi - faqat internal Docker network
     networks:
       - vakans_network
     healthcheck:

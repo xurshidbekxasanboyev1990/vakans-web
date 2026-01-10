@@ -67,9 +67,11 @@ services:
       PORT: 5000
       DATABASE_URL: postgresql://${POSTGRES_USER:-vakans_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-vakans_db}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
       COOKIE_SECRET: ${COOKIE_SECRET:?COOKIE_SECRET is required}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-.vakans.uz}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://vakans.uz}
       # SMS Eskiz.uz
       ESKIZ_EMAIL: ${ESKIZ_EMAIL:-}

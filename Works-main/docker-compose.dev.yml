@@ -1,0 +1,49 @@
+# ============================================
+# VAKANS.UZ - Development Docker Compose
+# ============================================
+# PostgreSQL va Redis uchun development setup
+# Backend va Frontend local ravishda ishga tushiriladi
+# ============================================
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: vakans_postgres_dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vakans_user
+      POSTGRES_PASSWORD: vakans_secure_password_2024
+      POSTGRES_DB: vakans_db
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vakans_user -d vakans_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: vakans_redis_dev
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass vakans_redis_password_2024
+    volumes:
+      - redis_dev_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "vakans_redis_password_2024", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:

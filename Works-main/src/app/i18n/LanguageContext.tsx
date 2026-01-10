@@ -1,8 +1,25 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Language, translations } from './translations';
 
-// Backend API URL - only use if explicitly set
+// Backend API URL - only use if explicitly set and is absolute URL
+// Relative '/api' paths will fail if backend is not running, so skip them
 const API_URL = import.meta.env.VITE_API_URL;
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+
+// Only use API for translations if it's an absolute URL and not in demo mode
+const shouldUseBackendTranslations = () => {
+  // Skip in demo mode - use local translations
+  if (DEMO_MODE) return false;
+  
+  // Skip if no API URL configured
+  if (!API_URL) return false;
+  
+  // Skip if relative URL (backend may not be running)
+  if (API_URL.startsWith('/')) return false;
+  
+  // Use API for absolute URLs (production)
+  return API_URL.startsWith('http');
+};
 
 interface LanguageContextType {
   language: Language;
@@ -21,10 +38,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [backendTranslations, setBackendTranslations] = useState<Record<string, string> | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Fetch translations from backend (only if API_URL is configured)
+  // Fetch translations from backend only in production with absolute API URL
   useEffect(() => {
-    // Skip API call if no backend URL configured
-    if (!API_URL) {
+    // Skip API call if conditions not met
+    if (!shouldUseBackendTranslations()) {
       setBackendTranslations(null);
       return;
     }

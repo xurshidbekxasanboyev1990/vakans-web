@@ -98,10 +98,10 @@ export function generateTokens(payload: TokenPayload): { accessToken: string; re
 export const COOKIE_OPTIONS = {
   httpOnly: true, // XSS himoyasi - JavaScript kirish mumkin emas
   secure: process.env.NODE_ENV === 'production', // Production da faqat HTTPS
-  sameSite: 'strict' as const, // 🔐 CSRF himoyasi kuchaytirildi (lax -> strict)
+  sameSite: 'lax' as const, // 🔐 CSRF himoyasi - 'lax' cross-origin navigatsiya uchun kerak
   path: '/',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 kun refresh token uchun
-  domain: process.env.COOKIE_DOMAIN || undefined, // Production da domen belgilash
+  // Domain sozlamasini olib tashlaymiz - subdomain muammolari uchun
 };
 
 export const ACCESS_COOKIE_OPTIONS = {

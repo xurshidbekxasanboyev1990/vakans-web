@@ -97,11 +97,11 @@ export function generateTokens(payload: TokenPayload): { accessToken: string; re
 // 🔐 Kuchaytirilgan xavfsizlik sozlamalari
 export const COOKIE_OPTIONS = {
   httpOnly: true, // XSS himoyasi - JavaScript kirish mumkin emas
-  secure: false, // SSL sertifikat o'rnatilgandan keyin true qilish kerak
-  sameSite: 'lax' as const, // HTTP uchun 'lax' ishlatamiz
+  secure: true, // HTTPS uchun majburiy
+  sameSite: 'none' as const, // HTTPS cross-origin uchun 'none'
   path: '/',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 kun refresh token uchun
-  domain: process.env.COOKIE_DOMAIN || undefined, // Production: '.vakans.uz' qo'shish mumkin
+  domain: process.env.COOKIE_DOMAIN || undefined, // Production: '.vakans.uz'
 };
 
 export const ACCESS_COOKIE_OPTIONS = {

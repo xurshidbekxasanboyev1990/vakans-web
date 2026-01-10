@@ -39,19 +39,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
+        console.log('[AuthContext] Checking auth...');
         // With cookie-based auth, we check by making a request to the server
         const response = await apiService.getProfile();
+        console.log('[AuthContext] getProfile response:', response);
         if (response.success && response.data?.profile) {
+          console.log('[AuthContext] User logged in:', response.data.profile);
           setUser(response.data.profile);
         } else {
           // No valid session, user is not logged in
+          console.log('[AuthContext] No valid session');
           setUser(null);
         }
       } catch (error) {
         // Auth init failed - silent in production
-        if (import.meta.env.DEV) {
-          console.error('Auth initialization error:', error);
-        }
+        console.error('[AuthContext] Auth initialization error:', error);
         setUser(null);
       }
       setLoading(false);

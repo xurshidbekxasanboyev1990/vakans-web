@@ -60,9 +60,16 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
           if (data.success && data.data) {
             setBackendTranslations(data.data);
           }
+        } else if (response.status === 404) {
+          // Route not found, use local translations silently
+          console.warn(`i18n route not found for language: ${language}, using local translations`);
+          setBackendTranslations(null);
         }
-      } catch {
+      } catch (error) {
         // Backend unavailable, silently use local translations
+        if (error instanceof Error && error.name !== 'AbortError') {
+          console.warn('i18n backend unavailable, using local translations');
+        }
         setBackendTranslations(null);
       } finally {
         clearTimeout(timeoutId);

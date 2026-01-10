@@ -210,6 +210,7 @@ export function RegistrationForm({ userType, onRegister, onSwitchToLogin, isLoad
                 }}
                 placeholder={t('minChars')}
                 required
+                autoComplete="new-password"
                 className="h-9 sm:h-11 pr-10 text-sm sm:text-base"
               />
               <button
@@ -242,6 +243,7 @@ export function RegistrationForm({ userType, onRegister, onSwitchToLogin, isLoad
                 }}
                 placeholder={t('reenterPassword')}
                 required
+                autoComplete="new-password"
                 className="h-9 sm:h-11 pr-10 text-sm sm:text-base"
               />
               <button

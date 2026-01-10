@@ -203,6 +203,7 @@ export function LoginForm({ userType, onLogin, onSwitchToRegister, isLoading }: 
                   }}
                   placeholder="••••••••"
                   required
+                  autoComplete="current-password"
                   className="flex-1 h-full px-3 sm:px-4 text-sm sm:text-base bg-transparent outline-none border-none text-foreground placeholder:text-muted-foreground min-w-0"
                 />
                 <button

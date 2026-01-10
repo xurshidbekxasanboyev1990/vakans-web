@@ -199,7 +199,7 @@ router.post('/refresh', async (req: AuthRequest, res: Response) => {
     const refreshToken = req.cookies?.[COOKIE_NAMES.REFRESH_TOKEN] || req.body?.refreshToken;
 
     if (!refreshToken) {
-      res.status(400).json({ success: false, error: 'Refresh token topilmadi' });
+      res.status(401).json({ success: false, error: 'Refresh token topilmadi' });
       return;
     }
 

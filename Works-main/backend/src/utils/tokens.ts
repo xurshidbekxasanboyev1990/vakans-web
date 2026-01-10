@@ -98,10 +98,10 @@ export function generateTokens(payload: TokenPayload): { accessToken: string; re
 export const COOKIE_OPTIONS = {
   httpOnly: true, // XSS himoyasi - JavaScript kirish mumkin emas
   secure: process.env.NODE_ENV === 'production', // Production da faqat HTTPS
-  sameSite: 'lax' as const, // 🔐 CSRF himoyasi - 'lax' cross-origin navigatsiya uchun kerak
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const, // Production: 'none' (cross-origin), Dev: 'lax'
   path: '/',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 kun refresh token uchun
-  // Domain sozlamasini olib tashlaymiz - subdomain muammolari uchun
+  domain: process.env.COOKIE_DOMAIN || undefined, // Production: '.vakans.uz' qo'shish mumkin
 };
 
 export const ACCESS_COOKIE_OPTIONS = {

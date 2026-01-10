@@ -456,6 +456,7 @@ export function SMSAdminPanel() {
                   value={settings.eskizPassword}
                   onChange={(e) => updateSettings({ eskizPassword: e.target.value })}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>

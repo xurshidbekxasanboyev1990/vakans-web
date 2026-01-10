@@ -44,6 +44,10 @@ const PORT = process.env.PORT || 5000;
 // ============================================
 
 // 🔐 Kuchaytirilgan Security headers
+const allowedOrigins = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+  : ["http://localhost:5173"];
+
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   contentSecurityPolicy: {
@@ -52,7 +56,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", process.env.CORS_ORIGIN || "http://localhost:5173"],
+      connectSrc: ["'self'"].concat(allowedOrigins),
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
@@ -74,18 +78,29 @@ app.use(helmet({
 const corsOrigins = process.env.CORS_ORIGIN 
   ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
   : (process.env.NODE_ENV === 'production' 
-      ? [] // No default origins in production - must be explicitly set
-      : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000']);
+      ? ['https://vakans.uz', 'https://www.vakans.uz'] // Production default origins
+      : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://localhost:5000']);
 
 if (process.env.NODE_ENV === 'production' && corsOrigins.length === 0) {
   logger.warn('CORS_ORIGIN not set in production mode!');
 }
 
 app.use(cors({
-  origin: corsOrigins,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (corsOrigins.length === 0 || corsOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      logger.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error('CORS policy violation'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  exposedHeaders: ['Set-Cookie']
 }));
 
 // Cookie Parser - for cookie-based auth

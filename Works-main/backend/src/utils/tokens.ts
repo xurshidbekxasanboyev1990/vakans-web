@@ -16,8 +16,8 @@ function getJwtSecrets(): { jwtSecret: string; jwtRefreshSecret: string } {
   return { jwtSecret, jwtRefreshSecret };
 }
 
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '7d';
+const ACCESS_TOKEN_EXPIRY = '30d';
+const REFRESH_TOKEN_EXPIRY = '30d';
 
 interface TokenPayload {
   id: string;
@@ -46,7 +46,7 @@ export function verifyRefreshToken(token: string): TokenPayload & { tokenId: str
 }
 
 export async function saveRefreshToken(userId: string, token: string): Promise<void> {
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
   
   await query(
     `INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)`,
@@ -54,7 +54,7 @@ export async function saveRefreshToken(userId: string, token: string): Promise<v
   );
   
   // Also cache in Redis
-  await setCache(`refresh:${userId}`, token, 7 * 24 * 60 * 60);
+  await setCache(`refresh:${userId}`, token, 30 * 24 * 60 * 60);
 }
 
 export async function revokeRefreshToken(userId: string): Promise<void> {
@@ -100,13 +100,11 @@ export const COOKIE_OPTIONS = {
   secure: true, // HTTPS uchun majburiy
   sameSite: 'lax' as const, // Safari/iOS uchun 'lax' (HTTPS same-site)
   path: '/',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 kun refresh token uchun
-  domain: process.env.COOKIE_DOMAIN || undefined, // Production: '.vakans.uz'
+  domain: process.env.COOKIE_DOMAIN || undefined, // Production: 'vakans.uz'
 };
 
 export const ACCESS_COOKIE_OPTIONS = {
   ...COOKIE_OPTIONS,
-  maxAge: 15 * 60 * 1000, // 15 daqiqa access token uchun
 };
 
 export const COOKIE_NAMES = {

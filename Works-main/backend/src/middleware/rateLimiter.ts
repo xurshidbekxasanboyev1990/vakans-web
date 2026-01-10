@@ -58,11 +58,11 @@ export const authRateLimiter = rateLimiter({
   keyPrefix: 'auth'
 });
 
-// 🔐 Login brute-force himoyasi - foydalanuvchi bo'yicha
+// 🔐 Login rate limiter O'CHIRILGAN - cheksiz urinish
 export const loginRateLimiter = rateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 daqiqa
-  max: 5, // Faqat 5 ta urinish
-  message: 'Ko\'p noto\'g\'ri urinish. 15 daqiqadan keyin qayta urinib ko\'ring.',
+  windowMs: 60 * 1000, // 1 daqiqa
+  max: 999999, // Cheksiz urinish
+  message: 'Qayta urinib ko\'ring.',
   keyPrefix: 'login'
 });
 

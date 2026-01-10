@@ -97,8 +97,8 @@ export function generateTokens(payload: TokenPayload): { accessToken: string; re
 // 🔐 Kuchaytirilgan xavfsizlik sozlamalari
 export const COOKIE_OPTIONS = {
   httpOnly: true, // XSS himoyasi - JavaScript kirish mumkin emas
-  secure: process.env.NODE_ENV === 'production', // Production da faqat HTTPS
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const, // Production: 'none' (cross-origin), Dev: 'lax'
+  secure: false, // SSL sertifikat o'rnatilgandan keyin true qilish kerak
+  sameSite: 'lax' as const, // HTTP uchun 'lax' ishlatamiz
   path: '/',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 kun refresh token uchun
   domain: process.env.COOKIE_DOMAIN || undefined, // Production: '.vakans.uz' qo'shish mumkin

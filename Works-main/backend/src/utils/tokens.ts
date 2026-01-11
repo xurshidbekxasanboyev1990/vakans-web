@@ -16,8 +16,9 @@ function getJwtSecrets(): { jwtSecret: string; jwtRefreshSecret: string } {
   return { jwtSecret, jwtRefreshSecret };
 }
 
-const ACCESS_TOKEN_EXPIRY = '30d';
-const REFRESH_TOKEN_EXPIRY = '30d';
+// Token expiry - foydalanuvchi talabi bo'yicha
+const ACCESS_TOKEN_EXPIRY = '15d'; // 15 kun - qulay foydalanish uchun
+const REFRESH_TOKEN_EXPIRY = '30d'; // 30 kun - uzoq muddatli session
 
 interface TokenPayload {
   id: string;
@@ -95,17 +96,25 @@ export function generateTokens(payload: TokenPayload): { accessToken: string; re
 
 // Cookie configuration for secure token storage
 // 🔐 Kuchaytirilgan xavfsizlik sozlamalari
+const isProduction = process.env.NODE_ENV === 'production';
+const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
+
 export const COOKIE_OPTIONS = {
   httpOnly: true, // XSS himoyasi - JavaScript kirish mumkin emas
-  secure: true, // HTTPS uchun majburiy
-  sameSite: 'lax' as const, // Same-site requests uchun
+  secure: isProduction, // ✅ Production'da HTTPS, development'da HTTP
+  sameSite: 'lax' as const, // CSRF himoyasi
   path: '/',
-  maxAge: 365 * 24 * 60 * 60 * 1000, // 365 kun - 1 yil login saqlanadi
-  // domain ni olib tashladik - browser avtomatik set qiladi
+  maxAge: 30 * 24 * 60 * 60 * 1000, // 30 kun - refresh token muddati
+  domain: cookieDomain, // Agar .env da o'rnatilsa ishlatiladi
 };
 
 export const ACCESS_COOKIE_OPTIONS = {
-  ...COOKIE_OPTIONS,
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: 'lax' as const,
+  path: '/',
+  maxAge: 15 * 24 * 60 * 60 * 1000, // 15 kun - access token muddati
+  domain: cookieDomain,
 };
 
 export const COOKIE_NAMES = {

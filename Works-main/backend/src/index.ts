@@ -11,8 +11,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Import config
-import { connectDatabase, closeDatabase } from './config/database';
-import { connectRedis, closeRedis } from './config/redis';
+import { connectDatabase, closeDatabase, query } from './config/database';
+import { connectRedis, closeRedis, getRedisClient } from './config/redis';
 
 // Import middleware
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
@@ -130,13 +130,37 @@ app.use('/api', apiRateLimiter);
 // ROUTES
 // ============================================
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+// 🔧 Health check - database va redis tekshiradi
+app.get('/health', async (req, res) => {
+  const health: any = {
+    status: 'ok',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  });
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV,
+    services: {}
+  };
+
+  // Database health
+  try {
+    await query('SELECT 1');
+    health.services.database = 'healthy';
+  } catch (error) {
+    health.services.database = 'unhealthy';
+    health.status = 'degraded';
+  }
+
+  // Redis health
+  try {
+    const redisClient = getRedisClient();
+    await redisClient.ping();
+    health.services.redis = 'healthy';
+  } catch (error) {
+    health.services.redis = 'unhealthy';
+    health.status = 'degraded';
+  }
+
+  const statusCode = health.status === 'ok' ? 200 : 503;
+  res.status(statusCode).json(health);
 });
 
 // API routes

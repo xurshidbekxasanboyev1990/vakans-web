@@ -100,6 +100,7 @@ export const COOKIE_OPTIONS = {
   secure: true, // HTTPS uchun majburiy
   sameSite: 'lax' as const, // Safari/iOS uchun 'lax' (HTTPS same-site)
   path: '/',
+  maxAge: 365 * 24 * 60 * 60 * 1000, // 365 kun - 1 yil login saqlanadi
   domain: process.env.COOKIE_DOMAIN || undefined, // Production: 'vakans.uz'
 };
 

@@ -98,10 +98,10 @@ export function generateTokens(payload: TokenPayload): { accessToken: string; re
 export const COOKIE_OPTIONS = {
   httpOnly: true, // XSS himoyasi - JavaScript kirish mumkin emas
   secure: true, // HTTPS uchun majburiy
-  sameSite: 'lax' as const, // Safari/iOS uchun 'lax' (HTTPS same-site)
+  sameSite: 'lax' as const, // Same-site requests uchun
   path: '/',
   maxAge: 365 * 24 * 60 * 60 * 1000, // 365 kun - 1 yil login saqlanadi
-  domain: process.env.COOKIE_DOMAIN || undefined, // Production: 'vakans.uz'
+  // domain ni olib tashladik - browser avtomatik set qiladi
 };
 
 export const ACCESS_COOKIE_OPTIONS = {

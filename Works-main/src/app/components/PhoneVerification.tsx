@@ -5,9 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Alert, AlertDescription } from './ui/alert';
 import { Label } from './ui/label';
 import { Loader2, CheckCircle2, AlertCircle, Send } from 'lucide-react';
-import { projectId } from '../../../utils/supabase/info';
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-5b47a45d`;
+// Backend API URL
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 interface PhoneVerificationProps {
   phone: string;

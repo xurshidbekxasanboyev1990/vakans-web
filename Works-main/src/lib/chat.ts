@@ -1,5 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
+/**
+ * Chat Service - Backend API orqali ishlaydi
+ * PostgreSQL + Redis (Docker) bilan
+ */
 import { useEffect, useState, useCallback } from 'react';
+
+// Backend API URL
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 // Types
 export interface Message {
@@ -31,13 +37,27 @@ export interface MessageWithUser extends Message {
   };
 }
 
-// Get Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Helper function for API calls
+async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    credentials: 'include', // Cookie-based auth
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Network error' }));
+    throw new Error(error.message || 'API error');
+  }
+
+  return response.json();
+}
 
 // ================================================
-// CHAT SERVICE
+// CHAT SERVICE - Backend API
 // ================================================
 
 export class ChatService {
@@ -45,41 +65,11 @@ export class ChatService {
    * Get or create conversation between two users
    */
   static async getOrCreateConversation(userId1: string, userId2: string): Promise<string> {
-    // Ensure consistent ordering for conversation_id
-    const [participant1, participant2] = userId1 < userId2 
-      ? [userId1, userId2] 
-      : [userId2, userId1];
-
-    // Check if conversation exists
-    const { data: existing, error: fetchError } = await supabase
-      .from('conversations')
-      .select('id')
-      .eq('participant1_id', participant1)
-      .eq('participant2_id', participant2)
-      .single();
-
-    if (existing) {
-      return existing.id;
-    }
-
-    // Create new conversation
-    const conversationId = crypto.randomUUID();
-    const { data, error } = await supabase
-      .from('conversations')
-      .insert({
-        id: conversationId,
-        participant1_id: participant1,
-        participant2_id: participant2,
-      })
-      .select('id')
-      .single();
-
-    if (error) {
-      console.error('Error creating conversation:', error);
-      throw error;
-    }
-
-    return data.id;
+    const result = await apiCall<{ conversationId: string }>('/chat/conversations', {
+      method: 'POST',
+      body: JSON.stringify({ userId1, userId2 }),
+    });
+    return result.conversationId;
   }
 
   /**
@@ -91,145 +81,92 @@ export class ChatService {
     receiverId: string,
     message: string
   ): Promise<Message> {
-    const { data, error } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        sender_id: senderId,
-        receiver_id: receiverId,
+    const result = await apiCall<{ message: Message }>('/chat/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        conversationId,
+        senderId,
+        receiverId,
         message: message.trim(),
-        read: false,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error sending message:', error);
-      throw error;
-    }
-
-    return data;
+      }),
+    });
+    return result.message;
   }
 
   /**
    * Get messages for a conversation
    */
   static async getMessages(conversationId: string, limit = 50): Promise<MessageWithUser[]> {
-    const { data, error } = await supabase
-      .from('messages')
-      .select(`
-        *,
-        sender:users!messages_sender_id_fkey(
-          id,
-          first_name,
-          last_name,
-          avatar_url
-        )
-      `)
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true })
-      .limit(limit);
-
-    if (error) {
-      console.error('Error fetching messages:', error);
-      throw error;
-    }
-
-    return data as MessageWithUser[];
+    const result = await apiCall<{ messages: MessageWithUser[] }>(
+      `/chat/messages/${conversationId}?limit=${limit}`
+    );
+    return result.messages;
   }
 
   /**
    * Mark messages as read
    */
   static async markAsRead(conversationId: string, receiverId: string): Promise<void> {
-    const { error } = await supabase
-      .from('messages')
-      .update({ read: true })
-      .eq('conversation_id', conversationId)
-      .eq('receiver_id', receiverId)
-      .eq('read', false);
-
-    if (error) {
-      console.error('Error marking messages as read:', error);
-      throw error;
-    }
+    await apiCall('/chat/messages/read', {
+      method: 'PUT',
+      body: JSON.stringify({ conversationId, receiverId }),
+    });
   }
 
   /**
    * Get user's conversations list
    */
-  static async getConversations(userId: string): Promise<any[]> {
-    const { data, error } = await supabase
-      .from('conversations')
-      .select(`
-        *,
-        participant1:users!conversations_participant1_id_fkey(
-          id,
-          first_name,
-          last_name,
-          avatar_url
-        ),
-        participant2:users!conversations_participant2_id_fkey(
-          id,
-          first_name,
-          last_name,
-          avatar_url
-        )
-      `)
-      .or(`participant1_id.eq.${userId},participant2_id.eq.${userId}`)
-      .order('last_message_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching conversations:', error);
-      throw error;
-    }
-
-    return data;
+  static async getConversations(userId: string): Promise<Conversation[]> {
+    const result = await apiCall<{ conversations: Conversation[] }>(
+      `/chat/conversations/${userId}`
+    );
+    return result.conversations;
   }
 
   /**
    * Get unread message count
    */
   static async getUnreadCount(userId: string): Promise<number> {
-    const { count, error } = await supabase
-      .from('messages')
-      .select('*', { count: 'exact', head: true })
-      .eq('receiver_id', userId)
-      .eq('read', false);
-
-    if (error) {
-      console.error('Error fetching unread count:', error);
-      return 0;
-    }
-
-    return count || 0;
+    const result = await apiCall<{ count: number }>(`/chat/unread/${userId}`);
+    return result.count;
   }
 
   /**
-   * Subscribe to new messages in a conversation
+   * Subscribe to new messages (polling-based for simplicity)
+   * For real WebSocket, use Socket.io on backend
    */
   static subscribeToMessages(
     conversationId: string,
     onMessage: (message: Message) => void
-  ) {
-    const channel = supabase
-      .channel(`messages:${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          onMessage(payload.new as Message);
+  ): () => void {
+    let lastMessageId: string | null = null;
+    let isActive = true;
+
+    const poll = async () => {
+      if (!isActive) return;
+
+      try {
+        const messages = await ChatService.getMessages(conversationId, 10);
+        if (messages.length > 0) {
+          const latestMessage = messages[messages.length - 1];
+          if (lastMessageId && latestMessage.id !== lastMessageId) {
+            onMessage(latestMessage);
+          }
+          lastMessageId = latestMessage.id;
         }
-      )
-      .subscribe();
+      } catch (err) {
+        console.error('Poll error:', err);
+      }
+
+      if (isActive) {
+        setTimeout(poll, 3000); // Poll every 3 seconds
+      }
+    };
+
+    poll();
 
     return () => {
-      supabase.removeChannel(channel);
+      isActive = false;
     };
   }
 
@@ -239,25 +176,29 @@ export class ChatService {
   static subscribeToConversations(
     userId: string,
     onUpdate: () => void
-  ) {
-    const channel = supabase
-      .channel(`conversations:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages',
-          filter: `or(sender_id.eq.${userId},receiver_id.eq.${userId})`,
-        },
-        () => {
-          onUpdate();
-        }
-      )
-      .subscribe();
+  ): () => void {
+    let isActive = true;
+
+    const poll = async () => {
+      if (!isActive) return;
+
+      try {
+        await ChatService.getConversations(userId);
+        onUpdate();
+      } catch (err) {
+        console.error('Poll error:', err);
+      }
+
+      if (isActive) {
+        setTimeout(poll, 5000); // Poll every 5 seconds
+      }
+    };
+
+    // Initial delay
+    setTimeout(poll, 5000);
 
     return () => {
-      supabase.removeChannel(channel);
+      isActive = false;
     };
   }
 }
@@ -297,13 +238,13 @@ export function useChat(conversationId: string | null, currentUserId: string) {
       });
   }, [conversationId, currentUserId]);
 
-  // Subscribe to real-time updates
+  // Subscribe to real-time updates (polling)
   useEffect(() => {
     if (!conversationId) return;
 
     const unsubscribe = ChatService.subscribeToMessages(conversationId, (newMessage) => {
-      setMessages((prev) => [...prev, newMessage as any]);
-      
+      setMessages((prev) => [...prev, newMessage as MessageWithUser]);
+
       // Mark as read if it's for current user
       if (newMessage.receiver_id === currentUserId) {
         ChatService.markAsRead(conversationId, currentUserId);
@@ -319,7 +260,13 @@ export function useChat(conversationId: string | null, currentUserId: string) {
       if (!conversationId || !text.trim()) return;
 
       try {
-        await ChatService.sendMessage(conversationId, currentUserId, receiverId, text);
+        const newMessage = await ChatService.sendMessage(
+          conversationId,
+          currentUserId,
+          receiverId,
+          text
+        );
+        setMessages((prev) => [...prev, newMessage as MessageWithUser]);
         setError(null);
       } catch (err: any) {
         setError(err.message);
@@ -336,17 +283,19 @@ export function useChat(conversationId: string | null, currentUserId: string) {
  * Hook to manage conversations list
  */
 export function useConversations(userId: string) {
-  const [conversations, setConversations] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   // Load conversations
   const loadConversations = useCallback(async () => {
+    if (!userId) return;
+    
     setLoading(true);
     try {
       const data = await ChatService.getConversations(userId);
       setConversations(data);
-      
+
       const count = await ChatService.getUnreadCount(userId);
       setUnreadCount(count);
     } catch (err) {
@@ -362,6 +311,8 @@ export function useConversations(userId: string) {
 
   // Subscribe to real-time updates
   useEffect(() => {
+    if (!userId) return;
+    
     const unsubscribe = ChatService.subscribeToConversations(userId, () => {
       loadConversations();
     });

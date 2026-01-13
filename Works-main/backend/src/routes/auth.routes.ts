@@ -263,20 +263,36 @@ router.post('/refresh', async (req: AuthRequest, res: Response) => {
 // ============================================
 // POST /auth/logout - Chiqish
 // ============================================
-router.post('/logout', authenticate, async (req: AuthRequest, res: Response) => {
+// authenticate o'rniga optionalAuth ishlatamiz - token eskirgan bo'lsa ham logout qilish mumkin
+router.post('/logout', async (req: AuthRequest, res: Response) => {
   try {
-    if (req.user) {
-      await revokeRefreshToken(req.user.id);
-      await deleteSession(req.user.id);
+    // Cookie'dan token olishga harakat qilamiz
+    const token = req.cookies?.[COOKIE_NAMES.ACCESS_TOKEN];
+    
+    if (token) {
+      try {
+        // Token hali yaroqli bo'lsa, user ma'lumotlarini olamiz
+        const jwt = await import('jsonwebtoken');
+        const decoded = jwt.default.verify(token, process.env.JWT_SECRET!) as { id: string };
+        
+        if (decoded?.id) {
+          await revokeRefreshToken(decoded.id);
+          await deleteSession(decoded.id);
+        }
+      } catch {
+        // Token eskirgan yoki yaroqsiz - bu normal, davom etamiz
+      }
     }
 
-    // Clear auth cookies
+    // Har qanday holatda cookie'larni tozalaymiz
     clearAuthCookies(res);
 
     res.json({ success: true, message: 'Muvaffaqiyatli chiqildi' });
   } catch (error) {
     console.error('Logout error:', error);
-    res.status(500).json({ success: false, error: 'Serverda xatolik' });
+    // Xatolik bo'lsa ham cookie'larni tozalaymiz
+    clearAuthCookies(res);
+    res.json({ success: true, message: 'Chiqildi' });
   }
 });
 

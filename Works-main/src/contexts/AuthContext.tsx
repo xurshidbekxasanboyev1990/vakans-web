@@ -32,11 +32,26 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(() => {
+    // Avval sessionStorage'dan user'ni olishga harakat qilamiz (page refresh uchun)
+    try {
+      const savedUser = sessionStorage.getItem('current_user');
+      if (savedUser) {
+        return JSON.parse(savedUser);
+      }
+    } catch (e) {
+      // ignore
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
 
   // Cookie-based auth: check auth by fetching profile from server
   useEffect(() => {
+    // Agar allaqachon tekshirilgan bo'lsa, qayta tekshirmaymiz
+    if (authChecked) return;
+
     const initAuth = async () => {
       try {
         console.log('[AuthContext] Checking auth...');
@@ -46,21 +61,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (response.success && response.data?.profile) {
           console.log('[AuthContext] User logged in:', response.data.profile);
           setUser(response.data.profile);
+          // SessionStorage'ga saqlaymiz (page refresh uchun)
+          try {
+            sessionStorage.setItem('current_user', JSON.stringify(response.data.profile));
+          } catch (e) {
+            // ignore
+          }
         } else {
           // No valid session, user is not logged in
-          console.log('[AuthContext] No valid session');
-          setUser(null);
+          // Lekin agar sessionStorage'da user bo'lsa, uni saqlaymiz (cookie muammosi bo'lishi mumkin)
+          const savedUser = sessionStorage.getItem('current_user');
+          if (!savedUser) {
+            console.log('[AuthContext] No valid session');
+            setUser(null);
+          } else {
+            console.log('[AuthContext] Using cached user from sessionStorage');
+          }
         }
       } catch (error) {
         // Auth init failed - silent in production
-        console.error('[AuthContext] Auth initialization error:', error);
-        setUser(null);
+        if (import.meta.env.DEV) {
+          console.error('[AuthContext] Auth initialization error:', error);
+        }
+        // Xatolik bo'lsa ham sessionStorage'dagi user'ni saqlaymiz
       }
       setLoading(false);
+      setAuthChecked(true);
     };
 
     initAuth();
-  }, []);
+  }, [authChecked]);
 
   const signUp = async (
     email: string,
@@ -100,6 +130,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.data?.user) {
         setUser(response.data.user);
+        // SessionStorage'ga saqlaymiz (page refresh va cookie muammolari uchun)
+        try {
+          sessionStorage.setItem('current_user', JSON.stringify(response.data.user));
+        } catch (e) {
+          // ignore
+        }
         // Store deviceId for multi-device support
         if (response.data.deviceId) {
           sessionStorage.setItem('deviceId', response.data.deviceId);
@@ -142,6 +178,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (response.data?.user) {
         setUser(response.data.user);
+        // SessionStorage'ga saqlaymiz (page refresh va cookie muammolari uchun)
+        try {
+          sessionStorage.setItem('current_user', JSON.stringify(response.data.user));
+        } catch (e) {
+          // ignore
+        }
         // Store deviceId for multi-device support
         if (response.data.deviceId) {
           sessionStorage.setItem('deviceId', response.data.deviceId);
@@ -169,7 +211,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const deviceId = sessionStorage.getItem('deviceId');
       await apiService.logout(deviceId || undefined);
       setUser(null);
-      // Remove deviceId from storage
+      // Remove user and deviceId from storage
+      sessionStorage.removeItem('current_user');
       sessionStorage.removeItem('deviceId');
       toast.info('Tizimdan chiqdingiz');
     } catch (error) {

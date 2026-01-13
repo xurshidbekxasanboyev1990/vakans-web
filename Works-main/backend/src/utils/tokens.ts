@@ -97,24 +97,31 @@ export function generateTokens(payload: TokenPayload): { accessToken: string; re
 // Cookie configuration for secure token storage
 // 🔐 Kuchaytirilgan xavfsizlik sozlamalari
 const isProduction = process.env.NODE_ENV === 'production';
-const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
+
+// Cookie domain - development'da undefined bo'lishi kerak (same origin ishlashi uchun)
+// Production'da .vakans.uz kabi domen bo'lishi mumkin
+const cookieDomain = isProduction ? (process.env.COOKIE_DOMAIN || undefined) : undefined;
+
+// Development'da cross-origin cookie ishlashi uchun sameSite: 'none' va secure: true kerak
+// Lekin localhost HTTP uchun sameSite: 'lax' va secure: false ishlatamiz
+const isDevelopment = process.env.NODE_ENV === 'development' || !isProduction;
 
 export const COOKIE_OPTIONS = {
   httpOnly: true, // XSS himoyasi - JavaScript kirish mumkin emas
-  secure: isProduction, // ✅ Production'da HTTPS, development'da HTTP
-  sameSite: 'lax' as const, // CSRF himoyasi
+  secure: isProduction, // Production'da HTTPS talab qilinadi
+  sameSite: (isProduction ? 'strict' : 'lax') as 'strict' | 'lax' | 'none', // Production'da strict, dev'da lax
   path: '/',
   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 kun - refresh token muddati
-  domain: cookieDomain, // Agar .env da o'rnatilsa ishlatiladi
+  ...(cookieDomain && { domain: cookieDomain }), // Faqat agar domain o'rnatilgan bo'lsa
 };
 
 export const ACCESS_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: isProduction,
-  sameSite: 'lax' as const,
+  sameSite: (isProduction ? 'strict' : 'lax') as 'strict' | 'lax' | 'none',
   path: '/',
   maxAge: 15 * 24 * 60 * 60 * 1000, // 15 kun - access token muddati
-  domain: cookieDomain,
+  ...(cookieDomain && { domain: cookieDomain }),
 };
 
 export const COOKIE_NAMES = {

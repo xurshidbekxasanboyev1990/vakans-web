@@ -231,6 +231,12 @@ export const translations = {
       passwordNumber: 'Parol kamida bitta raqam bo\'lishi kerak',
       passwordMismatch: 'Parollar mos kelmayapti',
     },
+    // 404 sahifa
+    notFound: 'Sahifa topilmadi',
+    notFoundDescription: 'Kechirasiz, siz qidirayotgan sahifa mavjud emas yoki ko\'chirilgan.',
+    backToHome: 'Bosh sahifa',
+    goBack: 'Orqaga',
+    needHelp: 'Yordam kerakmi?',
   },
   uzk: {
     appName: 'Vakans.uz',
@@ -457,6 +463,12 @@ export const translations = {
       passwordNumber: 'Парол камида битта рақам бўлиши керак',
       passwordMismatch: 'Пароллар мос келмаяпти',
     },
+    // 404 саҳифа
+    notFound: 'Саҳифа топилмади',
+    notFoundDescription: 'Кечирасиз, сиз қидираётган саҳифа мавжуд эмас ёки кўчирилган.',
+    backToHome: 'Бош саҳифа',
+    goBack: 'Орқага',
+    needHelp: 'Ёрдам керакми?',
   },
   ru: {
     appName: 'Vakans.uz',
@@ -683,6 +695,12 @@ export const translations = {
       passwordNumber: 'Минимум одна цифра',
       passwordMismatch: 'Пароли не совпадают',
     },
+    // 404 страница
+    notFound: 'Страница не найдена',
+    notFoundDescription: 'Извините, страница, которую вы ищете, не существует или была перемещена.',
+    backToHome: 'На главную',
+    goBack: 'Назад',
+    needHelp: 'Нужна помощь?',
   },
   en: {
     appName: 'Vakans.uz',
@@ -909,6 +927,12 @@ export const translations = {
       passwordNumber: 'At least one number',
       passwordMismatch: 'Passwords do not match',
     },
+    // 404 page
+    notFound: 'Page not found',
+    notFoundDescription: 'Sorry, the page you are looking for does not exist or has been moved.',
+    backToHome: 'Go Home',
+    goBack: 'Go Back',
+    needHelp: 'Need help?',
   }
 };
 

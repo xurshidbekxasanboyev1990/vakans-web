@@ -93,14 +93,20 @@ app.use(cors({
     if (corsOrigins.length === 0 || corsOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      // Development'da barcha localhost portlarini ruxsat beramiz
+      if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+        return callback(null, true);
+      }
       logger.warn(`CORS blocked origin: ${origin}`);
       callback(new Error('CORS policy violation'));
     }
   },
-  credentials: true,
+  credentials: true, // Cookie yuborish uchun muhim!
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-  exposedHeaders: ['Set-Cookie']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-Requested-With'],
+  exposedHeaders: ['Set-Cookie'],
+  optionsSuccessStatus: 200, // IE11 va eski browserlar uchun
+  preflightContinue: false,
 }));
 
 // Cookie Parser - for cookie-based auth

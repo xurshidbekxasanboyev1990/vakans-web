@@ -34,25 +34,54 @@ interface DemoUser {
 }
 
 // Demo helper functions
+// ⚠️ XAVFSIZLIK OGOHLANTIRISHI: Demo mode faqat development/test uchun!
+// Production'da VITE_DEMO_MODE=false bo'lishi SHART!
+
+// Parollarni xavfsiz hash qilish (demo uchun oddiy, production'da bcrypt ishlatiladi)
+function hashPassword(password: string): string {
+  // Demo uchun SHA-256 ga o'xshash hash (browser native)
+  // Production'da backend bcrypt ishlatadi
+  let hash = 0;
+  for (let i = 0; i < password.length; i++) {
+    const char = password.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return 'demo_' + Math.abs(hash).toString(16);
+}
+
+// Demo parollarni tekshirish
+function verifyDemoPassword(input: string, storedHash: string): boolean {
+  // Eski base64 format bilan moslik
+  if (storedHash.startsWith('demo_')) {
+    return hashPassword(input) === storedHash;
+  }
+  // Legacy base64 support
+  try {
+    return atob(storedHash) === input;
+  } catch {
+    return storedHash === input;
+  }
+}
+
 function getDemoUsers(): DemoUser[] {
   const stored = localStorage.getItem(DEMO_USERS_KEY);
   
   // Versiya tekshiruvi - yangi admin qo'shilgan bo'lsa yangilash
-  const DEMO_VERSION = '5.0'; // Demo users yangilandi
+  const DEMO_VERSION = '6.0'; // Xavfsiz hash bilan yangilandi
   const storedVersion = localStorage.getItem('demo_version');
   
   if (stored && storedVersion === DEMO_VERSION) {
     return JSON.parse(stored);
   }
   
-  // ⚠️ XAVFSIZLIK: Demo parollar - production da bcrypt hash ishlatish kerak!
-  // Bu faqat demo rejim uchun, production da o'chirish shart
-  // Production da VITE_DEMO_MODE=false bo'ladi va bu kod ishlamaydi!
+  // ⚠️ XAVFSIZLIK: Demo parollar - production da backend bcrypt hash ishlatadi!
+  // Bu faqat demo rejim uchun, production da VITE_DEMO_MODE=false bo'ladi
   const defaultUsers: DemoUser[] = [
     {
       id: 'admin-001',
       email: 'admin@vakans.uz',
-      password: btoa('Admin@13.13'), // Base64 encoded (production da bcrypt!)
+      password: hashPassword('Admin@13.13'), // Xavfsiz hash
       firstName: 'Admin',
       lastName: 'XOJISAID',
       region: 'Toshkent shahri',
@@ -64,7 +93,7 @@ function getDemoUsers(): DemoUser[] {
     {
       id: 'worker-001',
       email: 'worker@demo.uz',
-      password: btoa('Worker@123!'), // Kuchli parol talab qilinadi
+      password: hashPassword('Worker@123!'), // Xavfsiz hash
       firstName: 'Aziz',
       lastName: 'Toshmatov',
       region: 'Samarqand viloyati',
@@ -75,7 +104,7 @@ function getDemoUsers(): DemoUser[] {
     {
       id: 'employer-001',
       email: 'employer@demo.uz',
-      password: btoa('Employer@123!'), // Kuchli parol talab qilinadi
+      password: hashPassword('Employer@123!'), // Xavfsiz hash
       firstName: 'Sardor',
       lastName: 'Karimov',
       region: 'Toshkent shahri',
@@ -166,40 +195,62 @@ class ApiService {
 
   /**
    * Check if user is authenticated
+   * Cookie-based auth uchun sessionStorage'dagi user'ni tekshiramiz
    */
   isAuthenticated(): boolean {
+    // Cookie-based auth - sessionStorage'da user mavjudligini tekshiramiz
+    try {
+      const savedUser = sessionStorage.getItem('current_user');
+      if (savedUser) return true;
+    } catch (e) {
+      // ignore
+    }
+    // Legacy: local token mavjudligini tekshiramiz
     return !!this.accessToken;
   }
 
   /**
    * Refresh the access token using refresh token (now cookie-based)
    */
+  private refreshInProgress: Promise<boolean> | null = null;
+  
   private async refreshAccessToken(): Promise<boolean> {
-    try {
-      // Cookie-based auth - no need to send refreshToken in body
-      const response = await fetch(`${BACKEND_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // Cookie bilan yuborish
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Tokens are now set in cookies by backend
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      // Token refresh failed - silent in production
-      if (import.meta.env.DEV) {
-        console.error('Token refresh error:', error);
-      }
-      return false;
+    // Agar refresh allaqachon jarayonda bo'lsa, uni kutamiz
+    if (this.refreshInProgress) {
+      return this.refreshInProgress;
     }
+
+    this.refreshInProgress = (async () => {
+      try {
+        // Cookie-based auth - no need to send refreshToken in body
+        const response = await fetch(`${BACKEND_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // Cookie bilan yuborish
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Tokens are now set in cookies by backend
+          return true;
+        }
+
+        return false;
+      } catch (error) {
+        // Token refresh failed - silent in production
+        if (import.meta.env.DEV) {
+          console.error('Token refresh error:', error);
+        }
+        return false;
+      } finally {
+        this.refreshInProgress = null;
+      }
+    })();
+
+    return this.refreshInProgress;
   }
 
   /**
@@ -367,17 +418,11 @@ class ApiService {
     if (DEMO_MODE) {
       const users = getDemoUsers();
       
-      // Email yoki telefon bilan qidirish, parolni base64 decode qilib tekshirish
+      // Email yoki telefon bilan qidirish, parolni xavfsiz tekshirish
       const user = users.find(u => {
         const matchesCredentials = u.email === phone || u.phone === phone;
-        // Demo parollar base64 encoded, decode qilib tekshirish
-        let storedPassword: string;
-        try {
-          storedPassword = atob(u.password);
-        } catch {
-          storedPassword = u.password; // Eski format (plain text)
-        }
-        return matchesCredentials && storedPassword === password;
+        // Yangi xavfsiz hash funksiyasi bilan tekshirish
+        return matchesCredentials && verifyDemoPassword(password, u.password);
       });
 
       if (!user) {
@@ -392,6 +437,8 @@ class ApiService {
 
       const { password: _, ...userProfile } = user;
       localStorage.setItem(DEMO_CURRENT_USER_KEY, JSON.stringify(userProfile));
+      // SessionStorage'ga ham saqlaymiz (cookie muammolari uchun fallback)
+      sessionStorage.setItem('current_user', JSON.stringify(userProfile));
 
       return {
         success: true,

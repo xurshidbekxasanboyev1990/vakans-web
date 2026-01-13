@@ -38,6 +38,7 @@ const EmployerDashboard = lazy(() => import('./components/EmployerDashboard').th
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 const ProfilePage = lazy(() => import('./components/ProfilePage').then(m => ({ default: m.ProfilePage })));
 const SettingsPage = lazy(() => import('./components/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const NotFoundPage = lazy(() => import('./components/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 
 function LoadingSpinner({ message }: { message?: string }) {
   return (
@@ -1418,7 +1419,11 @@ function AppRoutes() {
         } 
       />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={
+        <Suspense fallback={<PageSkeleton />}>
+          <NotFoundPage />
+        </Suspense>
+      } />
     </Routes>
   );
 }
